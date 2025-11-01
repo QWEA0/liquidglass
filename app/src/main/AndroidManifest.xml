@@ -25,50 +25,6 @@
             </intent-filter>
         </activity>
 
-        <!-- IIR 高斯模糊演示 Activity -->
-        <activity
-            android:name="com.example.blur.MainActivity"
-            android:exported="true"
-            android:label="IIR Gaussian Blur Demo" />
-
-        <!-- IIR 高斯模糊基准测试 Activity -->
-        <activity
-            android:name="com.example.blur.BenchmarkActivity"
-            android:exported="true"
-            android:label="IIR Blur Benchmark" />
-
-        <!-- LiquidGlass 可滚动测试 Activity -->
-        <activity
-            android:name=".ScrollableTestActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.LiquidGlass.Translucent" />
-
-        <!-- LiquidGlass 效果测试 Activity -->
-        <activity
-            android:name=".EffectTestActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-
-        <!-- LiquidGlass 简化测试 Activity -->
-        <activity
-            android:name=".SimpleTestActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-
-        <!-- LiquidGlass 增强演示 Activity -->
-        <activity
-            android:name=".EnhancedDemoActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-
-        <!-- LiquidGlass 参数调整演示 Activity -->
-        <activity
-            android:name=".LiquidGlassDemoActivity"
-            android:exported="true"
-            android:screenOrientation="portrait"
-            android:label="LiquidGlass Demo" />
-
     </application>
 
 </manifest>
