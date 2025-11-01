@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.LiquidGlass"
+        tools:targetApi="31">
+
+        <!-- LiquidGlass 专业演示 Activity (主入口) -->
+        <activity
+            android:name=".ProfessionalDemoActivity"
+            android:exported="true"
+            android:label="LiquidGlass Professional Demo"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- IIR 高斯模糊演示 Activity -->
+        <activity
+            android:name="com.example.blur.MainActivity"
+            android:exported="true"
+            android:label="IIR Gaussian Blur Demo" />
+
+        <!-- IIR 高斯模糊基准测试 Activity -->
+        <activity
+            android:name="com.example.blur.BenchmarkActivity"
+            android:exported="true"
+            android:label="IIR Blur Benchmark" />
+
+        <!-- LiquidGlass 可滚动测试 Activity -->
+        <activity
+            android:name=".ScrollableTestActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.LiquidGlass.Translucent" />
+
+        <!-- LiquidGlass 效果测试 Activity -->
+        <activity
+            android:name=".EffectTestActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <!-- LiquidGlass 简化测试 Activity -->
+        <activity
+            android:name=".SimpleTestActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <!-- LiquidGlass 增强演示 Activity -->
+        <activity
+            android:name=".EnhancedDemoActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <!-- LiquidGlass 参数调整演示 Activity -->
+        <activity
+            android:name=".LiquidGlassDemoActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:label="LiquidGlass Demo" />
+
+    </application>
+
+</manifest>

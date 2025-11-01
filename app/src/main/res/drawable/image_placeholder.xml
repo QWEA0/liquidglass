@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    图片占位符 - 用于模拟图片内容
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="45"
+        android:startColor="#FF6B6B"
+        android:centerColor="#4ECDC4"
+        android:endColor="#45B7D1"
+        android:type="linear" />
+    <corners android:radius="16dp" />
+</shape>
+

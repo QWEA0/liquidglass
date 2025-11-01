@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    渐变背景 3 - 橙色到红色
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="90"
+        android:startColor="#fa709a"
+        android:endColor="#fee140"
+        android:type="linear" />
+</shape>
+

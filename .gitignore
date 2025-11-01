@@ -1,0 +1,66 @@
+# Android Studio / IntelliJ IDEA
+*.iml
+.gradle
+/local.properties
+/.idea/
+.DS_Store
+.externalNativeBuild
+.cxx
+
+# Build outputs
+/build
+/app/build
+/captures
+
+# Log files
+*.log
+
+# CMakeLists.txt should be tracked
+!CMakeLists.txt
+
+# Documentation and test files (临时文档和测试脚本)
+*_DEBUG*.md
+*_FIX*.md
+*_SUMMARY*.md
+*_GUIDE*.md
+*_PLAN*.md
+*_REPORT*.md
+*_RESULTS*.md
+*_INTEGRATION*.md
+*_OPTIMIZATION*.md
+*_UPDATE*.md
+CHROMATIC_ABERRATION*.md
+BILINEAR_INTERPOLATION*.md
+BUILD_SUCCESS.md
+DEMO_GUIDE.md
+EDGE_HIGHLIGHT*.md
+EXTREME_OPTIMIZATION*.md
+FILE_STRUCTURE.md
+FINAL_IMPLEMENTATION*.md
+FIXED_BUTTON*.md
+IIR_BLUR*.md
+IMPLEMENTATION*.md
+LIQUIDGLASS_BLUR*.md
+NEON_PERFORMANCE*.md
+NEW_FEATURES.md
+OPTIMIZATION_TEST*.md
+PERFORMANCE*.md
+PROFESSIONAL_DEMO*.md
+QUICKSTART.md
+QUICK_START.md
+SCROLLING_FIX.md
+SIMPLIFIED_BLUR*.md
+USAGE_GUIDE.md
+
+# Node modules (如果有前端工具)
+node_modules/
+package-lock.json
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Gradle cache
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar

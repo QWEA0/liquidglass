@@ -1,0 +1,23 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Source code
+*.java text
+*.kt text
+*.cpp text
+*.h text
+*.xml text
+*.gradle text
+*.kts text
+*.properties text
+*.md text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.jar binary
+*.so binary
+*.apk binary
+

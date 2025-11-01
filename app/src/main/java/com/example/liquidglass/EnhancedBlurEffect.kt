@@ -1,0 +1,316 @@
+/**
+ * 增强的模糊效果处理器
+ *
+ * 集成多种模糊算法，支持动态切换：
+ * 1. 传统 Box Blur（AdvancedFastBlur）
+ * 2. IIR 递归高斯模糊（标量版本）
+ * 3. IIR 递归高斯模糊（NEON 优化版本）
+ * 4. Box3 快速模糊
+ * 5. 智能选择
+ * 6. 下采样管线
+ *
+ * 性能优化：
+ * - 支持 NEON 向量化加速
+ * - 智能算法选择
+ * - 下采样管线优化
+ * - 缓存复用
+ *
+ * 使用示例：
+ * ```kotlin
+ * val blurEffect = EnhancedBlurEffect(view)
+ * blurEffect.blurMethod = BlurMethod.SMART
+ * blurEffect.highQuality = false
+ * val blurred = blurEffect.applyEffect(backdrop, blurRadius, saturation)
+ * ```
+ */
+package com.example.liquidglass
+
+import android.graphics.*
+import android.util.Log
+import android.view.View
+import com.example.blur.NativeGauss
+import kotlin.math.roundToInt
+
+/**
+ * 增强的背景模糊效果处理器
+ */
+class EnhancedBlurEffect(
+    private val view: View
+) {
+    companion object {
+        private const val TAG = "EnhancedBlurEffect"
+        
+        // 模糊半径到 σ 的转换系数
+        // blurRadius ≈ 3σ (感知半径)
+        private const val RADIUS_TO_SIGMA = 0.33f
+        
+        // 下采样阈值：当 σ > 此值时，推荐使用下采样管线
+        private const val DOWNSAMPLE_THRESHOLD = 15f
+    }
+
+    // 传统 Box Blur 工具
+    private val fastBlur = AdvancedFastBlur()
+    
+    // 模糊方法（默认智能选择）
+    var blurMethod = BlurMethod.SMART
+    
+    // 高质量模式（仅对 IIR 高斯有效）
+    var highQuality = false
+    
+    // 下采样比例（2 或 3）
+    var downsampleScale = 2
+        set(value) {
+            field = value.coerceIn(2, 3)
+        }
+    
+    // NEON 支持检测（延迟初始化）
+    private val neonSupported: Boolean by lazy {
+        try {
+            NativeGauss.hasNeonSupport()
+        } catch (e: Exception) {
+            Log.w(TAG, "NEON support check failed: ${e.message}")
+            false
+        }
+    }
+    
+    /**
+     * 捕获视图背后的背景
+     * 
+     * @param bounds 视图边界
+     * @return 背景 Bitmap
+     */
+    fun captureBackdrop(bounds: RectF): Bitmap? {
+        val parent = view.parent as? View ?: return null
+
+        // 创建背景 Bitmap
+        val width = bounds.width().toInt().coerceAtLeast(1)
+        val height = bounds.height().toInt().coerceAtLeast(1)
+        val backdrop = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(backdrop)
+
+        try {
+            // 获取视图在父容器中的实际位置
+            val location = IntArray(2)
+            view.getLocationInWindow(location)
+            val parentLocation = IntArray(2)
+            parent.getLocationInWindow(parentLocation)
+
+            // 计算视图相对于父容器的偏移
+            val offsetX = (location[0] - parentLocation[0]).toFloat()
+            val offsetY = (location[1] - parentLocation[1]).toFloat()
+
+            // 平移画布到视图在父容器中的实际位置
+            canvas.translate(-offsetX, -offsetY)
+
+            // 临时隐藏当前视图，避免绘制自己
+            val wasVisible = view.visibility
+            view.visibility = android.view.View.INVISIBLE
+
+            // 绘制父视图(不包括当前视图)
+            parent.draw(canvas)
+
+            // 恢复视图可见性
+            view.visibility = wasVisible
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to capture backdrop: ${e.message}")
+            // 如果捕获失败，返回半透明白色背景
+            canvas.drawColor(android.graphics.Color.argb(200, 255, 255, 255))
+        }
+
+        return backdrop
+    }
+    
+    /**
+     * 应用模糊和饱和度效果
+     *
+     * @param backdrop 原始背景
+     * @param blurRadius 模糊半径 (0-25)
+     * @param saturation 饱和度 (100 = 原始, 140 = 增强 40%)
+     * @return 处理后的背景
+     */
+    fun applyEffect(
+        backdrop: Bitmap,
+        blurRadius: Float,
+        saturation: Float
+    ): Bitmap {
+        var result = backdrop
+        var intermediate: Bitmap? = null
+
+        // 1. 应用模糊
+        if (blurRadius > 0f) {
+            result = applyBlur(result, blurRadius)
+            if (result != backdrop) {
+                intermediate = result  // 保存中间结果以便后续回收
+            }
+        }
+
+        // 2. 应用饱和度
+        if (saturation != 100f) {
+            val saturated = applySaturation(result, saturation / 100f)
+            // 如果有中间结果且不是最终结果，回收它
+            if (intermediate != null && saturated != intermediate) {
+                intermediate.recycle()
+            }
+            result = saturated
+        }
+
+        return result
+    }
+    
+    /**
+     * 应用模糊效果（根据选择的方法）
+     *
+     * @param bitmap 原始图像
+     * @param radius 模糊半径 (0-25)
+     * @return 模糊后的图像
+     */
+    private fun applyBlur(bitmap: Bitmap, radius: Float): Bitmap {
+        val clampedRadius = radius.coerceIn(0f, 25f)
+        
+        // 转换为 σ 值（用于 IIR 高斯）
+        val sigma = clampedRadius * RADIUS_TO_SIGMA
+        
+        return when (blurMethod) {
+            BlurMethod.BOX_BLUR -> applyBoxBlur(bitmap, clampedRadius)
+            BlurMethod.IIR_GAUSSIAN -> applyIIRGaussian(bitmap, sigma)
+            BlurMethod.IIR_GAUSSIAN_NEON -> applyIIRGaussianNeon(bitmap, sigma)
+            BlurMethod.BOX3 -> applyBox3(bitmap, sigma)
+            BlurMethod.SMART -> applySmartBlur(bitmap, sigma)
+            BlurMethod.DOWNSAMPLE -> applyDownsampleBlur(bitmap, sigma)
+        }
+    }
+    
+    /**
+     * 传统 Box Blur（使用 AdvancedFastBlur）
+     */
+    private fun applyBoxBlur(bitmap: Bitmap, radius: Float): Bitmap {
+        return fastBlur.blur(
+            bitmap = bitmap,
+            radius = radius,
+            downscale = 0.5f  // 降采样 50%
+        )
+    }
+    
+    /**
+     * IIR 递归高斯模糊（标量版本）
+     */
+    private fun applyIIRGaussian(bitmap: Bitmap, sigma: Float): Bitmap {
+        // 创建可编辑副本
+        val mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+        
+        try {
+            NativeGauss.gaussianIIRInplace(mutableBitmap, sigma, highQuality)
+        } catch (e: Exception) {
+            Log.e(TAG, "IIR Gaussian blur failed: ${e.message}")
+            // 回退到 Box Blur
+            return applyBoxBlur(bitmap, sigma * 3f)
+        }
+        
+        return mutableBitmap
+    }
+    
+    /**
+     * IIR 递归高斯模糊（NEON 优化版本）
+     */
+    private fun applyIIRGaussianNeon(bitmap: Bitmap, sigma: Float): Bitmap {
+        if (!neonSupported) {
+            Log.w(TAG, "NEON not supported, fallback to scalar IIR")
+            return applyIIRGaussian(bitmap, sigma)
+        }
+        
+        // 创建可编辑副本
+        val mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+        
+        try {
+            NativeGauss.gaussianIIRNeonInplace(mutableBitmap, sigma, highQuality)
+        } catch (e: Exception) {
+            Log.e(TAG, "IIR Gaussian NEON blur failed: ${e.message}")
+            // 回退到标量版本
+            return applyIIRGaussian(bitmap, sigma)
+        }
+        
+        return mutableBitmap
+    }
+    
+    /**
+     * Box3 快速模糊
+     */
+    private fun applyBox3(bitmap: Bitmap, sigma: Float): Bitmap {
+        // 创建可编辑副本
+        val mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+        
+        // σ 转换为 Box3 半径：radius ≈ σ * 1.2
+        val radius = (sigma * 1.2f).toInt().coerceAtLeast(1)
+        
+        try {
+            NativeGauss.box3Inplace(mutableBitmap, radius)
+        } catch (e: Exception) {
+            Log.e(TAG, "Box3 blur failed: ${e.message}")
+            // 回退到 Box Blur
+            return applyBoxBlur(bitmap, sigma * 3f)
+        }
+        
+        return mutableBitmap
+    }
+    
+    /**
+     * 智能选择模糊算法
+     */
+    private fun applySmartBlur(bitmap: Bitmap, sigma: Float): Bitmap {
+        // 创建可编辑副本
+        val mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+        
+        try {
+            NativeGauss.smartBlur(mutableBitmap, sigma, highQuality)
+        } catch (e: Exception) {
+            Log.e(TAG, "Smart blur failed: ${e.message}")
+            // 回退到 Box Blur
+            return applyBoxBlur(bitmap, sigma * 3f)
+        }
+        
+        return mutableBitmap
+    }
+    
+    /**
+     * 下采样管线模糊
+     */
+    private fun applyDownsampleBlur(bitmap: Bitmap, sigma: Float): Bitmap {
+        try {
+            return NativeGauss.downsampleBlur(bitmap, sigma, downsampleScale, highQuality)
+        } catch (e: Exception) {
+            Log.e(TAG, "Downsample blur failed: ${e.message}")
+            // 回退到智能模糊
+            return applySmartBlur(bitmap, sigma)
+        }
+    }
+    
+    /**
+     * 应用饱和度调整
+     * 
+     * @param bitmap 原始图像
+     * @param saturation 饱和度系数 (1.0 = 原始, 1.4 = 增强 40%)
+     * @return 调整后的图像
+     */
+    private fun applySaturation(bitmap: Bitmap, saturation: Float): Bitmap {
+        val result = bitmap.copy(bitmap.config ?: Bitmap.Config.ARGB_8888, true)
+        val canvas = Canvas(result)
+        val paint = Paint()
+        
+        // 使用 ColorMatrix 调整饱和度
+        val colorMatrix = ColorMatrix()
+        colorMatrix.setSaturation(saturation)
+        paint.colorFilter = ColorMatrixColorFilter(colorMatrix)
+        
+        canvas.drawBitmap(bitmap, 0f, 0f, paint)
+        
+        return result
+    }
+    
+    /**
+     * 释放资源
+     */
+    fun release() {
+        fastBlur.cleanup()
+    }
+}
+
