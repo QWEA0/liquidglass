@@ -34,11 +34,26 @@ A high-performance glassmorphism UI component library for Android, featuring rea
 
 ### 📱 Demo
 
+<div align="center">
+
+#### 🎬 Video Demo
+
+https://github.com/QWEA0/liquidglass/assets/2106699696.mp4
+
+#### 📸 Screenshot
+
+<img src="assets\2983473432.jpg" alt="LiquidGlass Demo Screenshot" width="300">
+
+</div>
+
 The demo app showcases:
-- Scrollable colorful background
+- Scrollable colorful background with infinite tiling support
 - Floating glass button with real-time effects
 - Debug panel with live parameter adjustment
 - Performance monitoring overlay
+- Custom background image selection from gallery
+- Bilingual UI (English/Chinese) with language switching
+- Edge highlight controls (border width, opacity, over light mode)
 
 ### 🚀 Quick Start
 
@@ -179,11 +194,26 @@ Inspired by the glassmorphism design trend and liquid-glass-react library.
 
 ### 📱 演示
 
+<div align="center">
+
+#### 🎬 视频演示
+
+https://github.com/QWEA0/liquidglass/assets/2106699696.mp4
+
+#### 📸 截图
+
+<img src="2983473432.jpg" alt="LiquidGlass 演示截图" width="300">
+
+</div>
+
 演示应用展示：
-- 可滚动的彩色背景
+- 支持无限拼接的可滚动彩色背景
 - 带实时效果的悬浮玻璃按钮
 - 实时参数调节的调试面板
 - 性能监控覆盖层
+- 从相册选择自定义背景图片
+- 双语界面（中文/英文）支持语言切换
+- 边缘高光控制（边框宽度、不透明度、亮背景模式）
 
 ### 🚀 快速开始
 
