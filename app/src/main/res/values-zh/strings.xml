@@ -1,0 +1,105 @@
+<!--
+    LiquidGlass 应用字符串资源 - 中文版
+    Chinese string resources for LiquidGlass app
+-->
+<resources>
+    <string name="app_name">液态玻璃</string>
+    
+    <!-- Main UI -->
+    <string name="glass_button_text">✨ 液态玻璃\n效果演示</string>
+    <string name="performance_waiting">性能监控：等待数据…</string>
+    
+    <!-- Debug Panel -->
+    <string name="debug_panel_title">⚙️ 调试面板</string>
+    
+    <!-- Performance Section -->
+    <string name="section_performance">性能监控</string>
+    <string name="switch_performance_overlay">显示性能悬浮窗</string>
+    <string name="debug_info_waiting">等待性能数据…</string>
+    
+    <!-- Blur Method Section -->
+    <string name="section_blur_method">模糊算法</string>
+    <string name="current_blur_method">当前：智能选择</string>
+    <string name="blur_method_smart">智能选择 (推荐)</string>
+    <string name="blur_method_box">传统 Box Blur</string>
+    <string name="blur_method_iir">IIR 高斯 (标量)</string>
+    <string name="blur_method_neon">IIR 高斯 (NEON)</string>
+    <string name="blur_method_box3">Box3 快速模糊</string>
+    <string name="blur_method_downsample">下采样管线</string>
+    <string name="blur_method_desc">• 智能选择: 自动选择最优算法\n• Box Blur: 传统盒式模糊\n• IIR 高斯: C++ 递归高斯模糊\n• IIR NEON: ARM SIMD 向量化\n• Box3: 3次盒式近似高斯\n• 下采样: 强模糊优化管线</string>
+    
+    <!-- Aberration Method Section -->
+    <string name="section_aberration_method">色差算法</string>
+    <string name="current_aberration_method">当前：自动选择</string>
+    <string name="aberration_method_auto">自动选择 (推荐)</string>
+    <string name="aberration_method_cpp">C++ 实现 (高性能)</string>
+    <string name="aberration_method_kotlin">Kotlin 实现 (兼容)</string>
+    <string name="aberration_method_desc">• 自动选择: 根据图像大小智能选择\n• C++ 实现: 高性能原生实现 (3-5x 提升)\n• Kotlin 实现: 纯 Kotlin 实现 (兼容性好)\n\n推荐：\n- 大图/实时处理 → C++ 实现\n- 小图/静态图片 → Kotlin 实现</string>
+    
+    <!-- Effect Switches -->
+    <string name="section_effect_switches">效果开关</string>
+    <string name="switch_enable_blur">启用模糊效果</string>
+    <string name="switch_enable_aberration">启用色差效果</string>
+    <string name="switch_enable_saturation">启用饱和度调节</string>
+    
+    <!-- Parameters -->
+    <string name="section_blur_params">模糊参数</string>
+    <string name="blur_amount">模糊强度: %.3f</string>
+    
+    <string name="section_saturation">饱和度</string>
+    <string name="saturation_value">饱和度: %d%%</string>
+    
+    <string name="section_aberration">色差强度</string>
+    <string name="aberration_value">色差强度: %.1f</string>
+    
+    <!-- Downsample -->
+    <string name="section_global_downsample">全局下采样（所有效果）</string>
+    <string name="global_downsample_value">全局下采样: %.2fx</string>
+    <string name="global_downsample_none">全局下采样: 1.00x (无下采样)</string>
+    
+    <string name="section_aberration_downsample">色差效果下采样</string>
+    <string name="aberration_downsample_value">色差下采样: %.2fx</string>
+    
+    <!-- Channel Offset -->
+    <string name="section_channel_offset">色差通道偏移</string>
+    <string name="red_offset">红色偏移: %.2f</string>
+    <string name="green_offset">绿色偏移: %.2f</string>
+    <string name="blue_offset">蓝色偏移: %.2f</string>
+    
+    <!-- Quality -->
+    <string name="switch_high_quality">高质量模糊（线性色彩空间）</string>
+    
+    <!-- Image Size Info -->
+    <string name="section_image_size">图片尺寸信息</string>
+    <string name="image_size_waiting">等待数据…</string>
+    <string name="captured_size">截取图片尺寸: %s</string>
+    <string name="blurred_size">实际模糊尺寸: %s</string>
+    <string name="size_info_desc">说明：\n- 截取尺寸 = LiquidGlass 按钮大小\n- 模糊尺寸 = 实际处理的图片大小\n- 如果两者不同，说明使用了下采样优化</string>
+    
+    <!-- Background & Language Section -->
+    <string name="section_background_language">背景与语言</string>
+    <string name="button_change_background">更换背景图片</string>
+    <string name="button_language_chinese">切换到中文</string>
+    <string name="button_language_english">Switch to English</string>
+    <string name="current_language">当前语言：中文</string>
+    
+    <!-- Toast Messages -->
+    <string name="toast_image_selected">背景图片已更新</string>
+    <string name="toast_language_changed">语言已切换为中文</string>
+    <string name="toast_no_image_selected">未选择图片</string>
+    
+    <!-- Performance Display -->
+    <string name="fps_format">帧率: ~%d</string>
+    <string name="capture_time">捕获: %sms</string>
+    <string name="blur_time">模糊: %sms (%s)</string>
+    <string name="aberration_time">色差: %sms (%s)</string>
+    <string name="total_time">总计: %sms</string>
+
+    <!-- Edge Highlight -->
+    <string name="section_edge_highlight">边缘高光</string>
+    <string name="switch_enable_edge_highlight">启用边缘高光</string>
+    <string name="switch_over_light">亮背景模式</string>
+    <string name="border_width">边框宽度: %.1f px</string>
+    <string name="highlight_opacity">高光不透明度: %.0f%%</string>
+</resources>
+

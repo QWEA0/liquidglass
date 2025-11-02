@@ -59,6 +59,10 @@ class LiquidGlassView @JvmOverloads constructor(
     var enableShadow = false  // 启用阴影（默认关闭，避免轮廓）
     var enableEdgeHighlight = true  // 边缘高光效果（默认开启）
 
+    // ✅ 边缘高光参数
+    var edgeHighlightBorderWidth = 1.5f  // 边框宽度（像素）
+    var edgeHighlightOpacity = 100f  // 高光不透明度（0-100）
+
     // ✅ 模糊方法选择（新增）
     var blurMethod = BlurMethod.SMART
         set(value) {
@@ -443,7 +447,9 @@ class LiquidGlassView @JvmOverloads constructor(
             bounds = bounds,
             cornerRadius = cornerRadius,
             mouseOffset = touchOffset,
-            overLight = overLight
+            overLight = overLight,
+            borderWidth = edgeHighlightBorderWidth,
+            opacity = edgeHighlightOpacity
         )
     }
     

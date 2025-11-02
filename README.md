@@ -4,7 +4,7 @@
 
 **A stunning glassmorphism UI component library for Android**
 
-**令人惊艳的 Android 玻璃态 UI 组件库**
+**令人惊艳的 Android 液态玻璃 UI 组件库**
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Android-green.svg)](https://developer.android.com)
@@ -165,7 +165,7 @@ Inspired by the glassmorphism design trend and liquid-glass-react library.
 
 ## 🌊 LiquidGlass Android
 
-一个高性能的 Android 玻璃态 UI 组件库，具有实时背景模糊、色差效果和液态交互特性。
+一个高性能的 Android 液态玻璃 UI 组件库，具有实时背景模糊、色差效果和液态交互特性。
 
 ### ✨ 特性
 

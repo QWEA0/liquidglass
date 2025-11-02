@@ -1,15 +1,6 @@
 /**
  * 边缘高光效果处理器 (Edge Highlight Effect)
  *
- * 模拟 Apple Liquid Glass 的边缘高光效果
- * 对应 React 版本中的边框层效果
- *
- * 实现原理：
- * 1. 双层渐变边框（Screen + Overlay 混合模式）
- * 2. 根据触摸位置动态调整渐变角度和强度
- * 3. Over Light 模式的对比度增强
- *
- * 注意：移除了悬停效果，因为移动设备不支持悬停
  *
  * 使用示例：
  * ```kotlin
@@ -28,18 +19,15 @@ import kotlin.math.min
  * 边缘高光效果处理器
  */
 class EdgeHighlightEffect {
-    
-    // 边框宽度（像素）
-    private val borderWidth = 1.5f
 
     // 缓存的 Paint 对象
     private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    
+
     // 缓存的路径对象
     private val borderPath = Path()
     private val innerPath = Path()
-    
+
     /**
      * 绘制边缘高光效果
      *
@@ -48,41 +36,46 @@ class EdgeHighlightEffect {
      * @param cornerRadius 圆角半径
      * @param mouseOffset 触摸偏移量（归一化，-100 到 100）
      * @param overLight 是否在亮背景上
+     * @param borderWidth 边框宽度（像素）
+     * @param opacity 高光不透明度（0-100）
      */
     fun draw(
         canvas: Canvas,
         bounds: RectF,
         cornerRadius: Float,
         mouseOffset: PointF = PointF(0f, 0f),
-        overLight: Boolean = false
+        overLight: Boolean = false,
+        borderWidth: Float = 1.5f,
+        opacity: Float = 100f
     ) {
+        val normalizedOpacity = opacity / 100f
+
         // 1. 绘制 Over Light 效果（如果需要）
         if (overLight) {
-            drawOverLightEffect(canvas, bounds, cornerRadius)
+            drawOverLightEffect(canvas, bounds, cornerRadius, normalizedOpacity)
         }
 
         // 2. 绘制边框层 1（Screen 混合模式）
-        drawBorderLayer(canvas, bounds, cornerRadius, mouseOffset, PorterDuff.Mode.SCREEN, 0.2f)
+        drawBorderLayer(canvas, bounds, cornerRadius, mouseOffset, PorterDuff.Mode.SCREEN, 0.2f * normalizedOpacity, borderWidth)
 
         // 3. 绘制边框层 2（Overlay 混合模式）
-        drawBorderLayer(canvas, bounds, cornerRadius, mouseOffset, PorterDuff.Mode.OVERLAY, 1.0f)
+        drawBorderLayer(canvas, bounds, cornerRadius, mouseOffset, PorterDuff.Mode.OVERLAY, 1.0f * normalizedOpacity, borderWidth)
     }
     
     /**
      * 绘制 Over Light 效果
-     * 对应 React 版本的行 460-482
      */
-    private fun drawOverLightEffect(canvas: Canvas, bounds: RectF, cornerRadius: Float) {
-        // 第一层：黑色半透明层（opacity: 0.2）
+    private fun drawOverLightEffect(canvas: Canvas, bounds: RectF, cornerRadius: Float, opacity: Float) {
+        // 第一层：黑色半透明层（opacity: 0.2 * opacity）
         overlayPaint.reset()
         overlayPaint.isAntiAlias = true
-        overlayPaint.color = Color.argb((0.2f * 255).toInt(), 0, 0, 0)
+        overlayPaint.color = Color.argb((0.2f * opacity * 255).toInt(), 0, 0, 0)
         canvas.drawRoundRect(bounds, cornerRadius, cornerRadius, overlayPaint)
-        
-        // 第二层：黑色 Overlay 混合模式层（opacity: 1.0）
+
+        // 第二层：黑色 Overlay 混合模式层（opacity: 1.0 * opacity）
         overlayPaint.reset()
         overlayPaint.isAntiAlias = true
-        overlayPaint.color = Color.argb(255, 0, 0, 0)
+        overlayPaint.color = Color.argb((opacity * 255).toInt(), 0, 0, 0)
         overlayPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.OVERLAY)
         canvas.drawRoundRect(bounds, cornerRadius, cornerRadius, overlayPaint)
         overlayPaint.xfermode = null
@@ -90,10 +83,10 @@ class EdgeHighlightEffect {
     
     /**
      * 绘制边框层
-     * 对应 React 版本的行 508-559（边框层部分）
      *
      * @param blendMode 混合模式（Screen 或 Overlay）
      * @param baseOpacity 基础透明度
+     * @param borderWidth 边框宽度
      */
     private fun drawBorderLayer(
         canvas: Canvas,
@@ -101,7 +94,8 @@ class EdgeHighlightEffect {
         cornerRadius: Float,
         mouseOffset: PointF,
         blendMode: PorterDuff.Mode,
-        baseOpacity: Float
+        baseOpacity: Float,
+        borderWidth: Float
     ) {
         // 计算渐变角度（对应 React: 135 + mouseOffset.x * 1.2）
         val gradientAngle = 135f + mouseOffset.x * 1.2f
