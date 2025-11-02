@@ -91,8 +91,36 @@ static inline uint8_t sample_bilinear_channel(
 }
 
 /**
+ * 最近邻采样单个颜色通道（高性能版本）
+ *
+ * @param pixels 像素数据
+ * @param width 图像宽度
+ * @param height 图像高度
+ * @param stride 行跨度（字节数）
+ * @param x 采样 X 坐标（可以是小数）
+ * @param y 采样 Y 坐标（可以是小数）
+ * @param channelOffset 通道偏移（0=B, 1=G, 2=R, 3=A）
+ * @return 最近邻像素的通道值（0-255）
+ */
+static inline uint8_t sample_nearest_channel(
+    const uint8_t* pixels,
+    int width,
+    int height,
+    int stride,
+    float x,
+    float y,
+    int channelOffset
+) {
+    // 四舍五入到最近的整数坐标
+    int clampedX = std::max(0, std::min(width - 1, static_cast<int>(x + 0.5f)));
+    int clampedY = std::max(0, std::min(height - 1, static_cast<int>(y + 0.5f)));
+
+    return pixels[clampedY * stride + clampedX * 4 + channelOffset];
+}
+
+/**
  * 双线性插值采样完整像素（ARGB）
- * 
+ *
  * @param pixels 像素数据
  * @param width 图像宽度
  * @param height 图像高度
@@ -136,7 +164,8 @@ void chromatic_aberration_rgba8888(
     float scale,
     float redOffset,
     float greenOffset,
-    float blueOffset
+    float blueOffset,
+    bool useBilinear
 ) {
     // 参数校验
     if (!source || !displacement || !result) {
@@ -164,8 +193,8 @@ void chromatic_aberration_rgba8888(
     const float actualGreenOffset = greenOffset;
     const float actualBlueOffset = blueOffset;
 
-    LOGD("Processing %dx%d, intensity=%.2f, scale=%.2f, offsets=(%.3f, %.3f, %.3f)",
-         width, height, intensity, scale, actualRedOffset, actualGreenOffset, actualBlueOffset);
+    LOGD("Processing %dx%d, intensity=%.2f, scale=%.2f, offsets=(%.3f, %.3f, %.3f), useBilinear=%d",
+         width, height, intensity, scale, actualRedOffset, actualGreenOffset, actualBlueOffset, useBilinear);
 
     // 处理每个像素
     for (int y = 0; y < height; ++y) {
@@ -206,11 +235,19 @@ void chromatic_aberration_rgba8888(
             float bSrcX = x + baseDx + actualBlueOffset;
             float bSrcY = y + baseDy + actualBlueOffset;
 
-            // ✅ 修复：使用双线性插值采样各个通道（与 Kotlin 实现一致）
-            // 每个通道从对应的采样位置提取对应的颜色通道
-            uint8_t r = sample_bilinear_channel(source, width, height, sourceStride, rSrcX, rSrcY, 2);  // R 通道
-            uint8_t g = sample_bilinear_channel(source, width, height, sourceStride, gSrcX, gSrcY, 1);  // G 通道
-            uint8_t b = sample_bilinear_channel(source, width, height, sourceStride, bSrcX, bSrcY, 0);  // B 通道
+            // ✅ 根据设置选择采样方法
+            uint8_t r, g, b;
+            if (useBilinear) {
+                // 双线性插值：高质量，平滑采样，无马赛克
+                r = sample_bilinear_channel(source, width, height, sourceStride, rSrcX, rSrcY, 2);  // R 通道
+                g = sample_bilinear_channel(source, width, height, sourceStride, gSrcX, gSrcY, 1);  // G 通道
+                b = sample_bilinear_channel(source, width, height, sourceStride, bSrcX, bSrcY, 0);  // B 通道
+            } else {
+                // 最近邻采样：高性能，速度快 2-3 倍
+                r = sample_nearest_channel(source, width, height, sourceStride, rSrcX, rSrcY, 2);  // R 通道
+                g = sample_nearest_channel(source, width, height, sourceStride, gSrcX, gSrcY, 1);  // G 通道
+                b = sample_nearest_channel(source, width, height, sourceStride, bSrcX, bSrcY, 0);  // B 通道
+            }
 
             // Alpha 通道取自原始像素
             const uint8_t* sourcePixel = source + y * sourceStride + x * 4;
@@ -238,14 +275,16 @@ void chromatic_aberration_rgba8888_inplace(
     float scale,
     float redOffset,
     float greenOffset,
-    float blueOffset
+    float blueOffset,
+    bool useBilinear
 ) {
     chromatic_aberration_rgba8888(
         source, displacement, result,
         width, height,
         stride, stride, stride,
         intensity, scale,
-        redOffset, greenOffset, blueOffset
+        redOffset, greenOffset, blueOffset,
+        useBilinear
     );
 }
 

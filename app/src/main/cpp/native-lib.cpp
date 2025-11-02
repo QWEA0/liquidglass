@@ -208,6 +208,94 @@ Java_com_example_blur_NativeGauss_box3Inplace(
 }
 
 /**
+ * JNI: advancedBoxBlurInplace
+ *
+ * AdvancedFastBlur 风格的 Box Blur（降采样优化 - 快速版本）
+ * 使用最近邻插值，速度快 5-10 倍
+ *
+ * @param bitmap 待处理位图（ARGB_8888，mutable）
+ * @param radius 模糊半径（0-25）
+ * @param downscale 降采样比例（0.01-1.0，推荐 0.5）
+ */
+extern "C" JNIEXPORT void JNICALL
+Java_com_example_blur_NativeGauss_advancedBoxBlurInplace(
+    JNIEnv* env,
+    jobject /* this */,
+    jobject bitmap,
+    jfloat radius,
+    jfloat downscale
+) {
+    AndroidBitmapInfo info;
+    void* pixels = nullptr;
+
+    // 锁定 Bitmap
+    if (!lock_bitmap(env, bitmap, &info, &pixels)) {
+        return; // 异常已在 lock_bitmap 中抛出
+    }
+
+    // 调用底层算法（原位处理，src 和 dst 相同）
+    LOGD("advancedBoxBlurInplace: %dx%d, radius=%.2f, downscale=%.2f, stride=%d",
+         info.width, info.height, radius, downscale, info.stride);
+
+    advanced_box_blur_rgba8888(
+        static_cast<uint8_t*>(pixels),  // src
+        static_cast<uint8_t*>(pixels),  // dst (same as src)
+        static_cast<int>(info.width),
+        static_cast<int>(info.height),
+        static_cast<int>(info.stride),
+        radius,
+        downscale
+    );
+
+    // 解锁 Bitmap
+    AndroidBitmap_unlockPixels(env, bitmap);
+}
+
+/**
+ * JNI: advancedBoxBlurInplaceHQ
+ *
+ * AdvancedFastBlur 风格的 Box Blur（降采样优化 - 高质量版本）
+ * 使用双线性插值，质量好但速度较慢
+ *
+ * @param bitmap 待处理位图（ARGB_8888，mutable）
+ * @param radius 模糊半径（0-25）
+ * @param downscale 降采样比例（0.01-1.0，推荐 0.5）
+ */
+extern "C" JNIEXPORT void JNICALL
+Java_com_example_blur_NativeGauss_advancedBoxBlurInplaceHQ(
+    JNIEnv* env,
+    jobject /* this */,
+    jobject bitmap,
+    jfloat radius,
+    jfloat downscale
+) {
+    AndroidBitmapInfo info;
+    void* pixels = nullptr;
+
+    // 锁定 Bitmap
+    if (!lock_bitmap(env, bitmap, &info, &pixels)) {
+        return; // 异常已在 lock_bitmap 中抛出
+    }
+
+    // 调用底层算法（原位处理，src 和 dst 相同）
+    LOGD("advancedBoxBlurInplaceHQ: %dx%d, radius=%.2f, downscale=%.2f, stride=%d",
+         info.width, info.height, radius, downscale, info.stride);
+
+    advanced_box_blur_rgba8888_hq(
+        static_cast<uint8_t*>(pixels),  // src
+        static_cast<uint8_t*>(pixels),  // dst (same as src)
+        static_cast<int>(info.width),
+        static_cast<int>(info.height),
+        static_cast<int>(info.stride),
+        radius,
+        downscale
+    );
+
+    // 解锁 Bitmap
+    AndroidBitmap_unlockPixels(env, bitmap);
+}
+
+/**
  * JNI: chromaticAberrationInplace
  *
  * 应用色差效果（Chromatic Aberration）
@@ -220,6 +308,7 @@ Java_com_example_blur_NativeGauss_box3Inplace(
  * @param redOffset 红色通道偏移量（默认 0.0）
  * @param greenOffset 绿色通道偏移量（默认 -0.05）
  * @param blueOffset 蓝色通道偏移量（默认 -0.1）
+ * @param useBilinear 是否使用双线性插值（默认 true）
  */
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_liquidglass_NativeChromaticAberration_chromaticAberrationInplace(
@@ -232,7 +321,8 @@ Java_com_example_liquidglass_NativeChromaticAberration_chromaticAberrationInplac
     jfloat scale,
     jfloat redOffset,
     jfloat greenOffset,
-    jfloat blueOffset
+    jfloat blueOffset,
+    jboolean useBilinear
 ) {
     AndroidBitmapInfo sourceInfo, displacementInfo, resultInfo;
     void* sourcePixels = nullptr;
@@ -277,8 +367,8 @@ Java_com_example_liquidglass_NativeChromaticAberration_chromaticAberrationInplac
     }
 
     // 调用底层算法
-    LOGD("chromaticAberrationInplace: %dx%d, intensity=%.2f, scale=%.2f, offsets=(%.3f, %.3f, %.3f)",
-         sourceInfo.width, sourceInfo.height, intensity, scale, redOffset, greenOffset, blueOffset);
+    LOGD("chromaticAberrationInplace: %dx%d, intensity=%.2f, scale=%.2f, offsets=(%.3f, %.3f, %.3f), useBilinear=%d",
+         sourceInfo.width, sourceInfo.height, intensity, scale, redOffset, greenOffset, blueOffset, useBilinear);
 
     chromatic_aberration_rgba8888(
         static_cast<const uint8_t*>(sourcePixels),
@@ -293,7 +383,8 @@ Java_com_example_liquidglass_NativeChromaticAberration_chromaticAberrationInplac
         scale,
         redOffset,
         greenOffset,
-        blueOffset
+        blueOffset,
+        useBilinear
     );
 
     // 解锁所有 Bitmap

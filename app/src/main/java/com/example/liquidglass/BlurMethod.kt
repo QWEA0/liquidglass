@@ -10,12 +10,21 @@ package com.example.liquidglass
  */
 enum class BlurMethod {
     /**
-     * 传统 Box Blur（盒式模糊）
+     * 传统 Box Blur（盒式模糊 - Kotlin 实现）
      * - 使用 AdvancedFastBlur 实现
      * - 降采样策略，性能较好
      * - 质量一般，适合实时预览
      */
     BOX_BLUR,
+
+    /**
+     * C++ Box Blur（盒式模糊 - C++ 实现）
+     * - 使用 C++ 原生实现
+     * - 降采样 + 双线性插值
+     * - 性能优于 Kotlin 版本
+     * - 质量一般，适合实时预览
+     */
+    BOX_BLUR_CPP,
 
     /**
      * IIR 递归高斯模糊（标量版本）

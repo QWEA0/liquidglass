@@ -21,12 +21,13 @@
     <string name="section_blur_method">Blur Algorithm</string>
     <string name="current_blur_method">Current: Smart Selection</string>
     <string name="blur_method_smart">Smart Selection (Recommended)</string>
-    <string name="blur_method_box">Traditional Box Blur</string>
+    <string name="blur_method_box">Box Blur (Kotlin)</string>
+    <string name="blur_method_box_cpp">Box Blur (C++)</string>
     <string name="blur_method_iir">IIR Gaussian (Scalar)</string>
     <string name="blur_method_neon">IIR Gaussian (NEON)</string>
     <string name="blur_method_box3">Box3 Fast Blur</string>
     <string name="blur_method_downsample">Downsample Pipeline</string>
-    <string name="blur_method_desc">• Smart Selection: Auto choose optimal algorithm\n• Box Blur: Traditional box blur\n• IIR Gaussian: C++ recursive Gaussian blur\n• IIR NEON: ARM SIMD vectorized\n• Box3: 3-pass box approximation\n• Downsample: Strong blur optimization</string>
+    <string name="blur_method_desc">• Smart Selection: Auto choose optimal algorithm\n• Box Blur (Kotlin): Traditional box blur (Kotlin)\n• Box Blur (C++): Native box blur (C++, faster)\n• IIR Gaussian: C++ recursive Gaussian blur\n• IIR NEON: ARM SIMD vectorized\n• Box3: 3-pass box approximation\n• Downsample: Strong blur optimization</string>
 
     <!-- Aberration Method Section -->
     <string name="section_aberration_method">Chromatic Aberration Algorithm</string>
@@ -101,4 +102,9 @@
     <string name="switch_over_light">Over Light Mode</string>
     <string name="border_width">Border Width: %.1f px</string>
     <string name="highlight_opacity">Highlight Opacity: %.0f%%</string>
+
+    <!-- Chromatic Aberration Quality -->
+    <string name="section_aberration_quality">Chromatic Aberration Quality</string>
+    <string name="switch_bilinear_interpolation">Use Bilinear Interpolation (High Quality)</string>
+    <string name="bilinear_desc">• Enabled: Smooth sampling, no mosaic (2-3x slower)\n• Disabled: Nearest-neighbor, faster (may have slight mosaic)\n\nNote: Affects both Kotlin and C++ implementations.</string>
 </resources>

@@ -11,6 +11,7 @@
 /build
 /app/build
 /captures
+/docs
 
 # Log files
 *.log
@@ -64,3 +65,5 @@ Thumbs.db
 .gradle/
 gradle-app.setting
 !gradle-wrapper.jar
+.gitattributes
+.gitignore

@@ -110,7 +110,62 @@ object NativeGauss {
         bitmap: Bitmap,
         radius: Int
     )
-    
+
+    /**
+     * AdvancedFastBlur 风格的 Box Blur（降采样优化 - 快速版本，原位处理）
+     *
+     * 算法流程：
+     * 1. 降采样到指定比例（使用最近邻插值 - 快速）
+     * 2. 在小图上执行 Box Blur
+     * 3. 上采样回原尺寸（使用最近邻插值 - 快速）
+     *
+     * 性能优势：
+     * - 降采样 50% 时，处理像素数减少 75%
+     * - 最近邻插值比双线性插值快 5-10 倍
+     * - 适合实时预览和大图模糊
+     * - 由于后续会模糊，质量损失可接受
+     *
+     * @param bitmap 待处理位图（ARGB_8888, mutable）
+     * @param radius 模糊半径（0-25），应用于降采样后的图像
+     * @param downscale 降采样比例（0.01-1.0），推荐 0.5
+     *                  - 0.5：降采样 50%，速度提升约 4×
+     *                  - 0.25：降采样 75%，速度提升约 16×
+     *
+     * @throws IllegalArgumentException 如果 Bitmap 格式不是 ARGB_8888 或不可编辑
+     */
+    external fun advancedBoxBlurInplace(
+        bitmap: Bitmap,
+        radius: Float,
+        downscale: Float = 0.5f
+    )
+
+    /**
+     * AdvancedFastBlur 风格的 Box Blur（降采样优化 - 高质量版本，原位处理）
+     *
+     * 算法流程：
+     * 1. 降采样到指定比例（使用双线性插值 - 高质量）
+     * 2. 在小图上执行 Box Blur
+     * 3. 上采样回原尺寸（使用双线性插值 - 高质量）
+     *
+     * 优势：
+     * - 质量好，平滑无锯齿
+     * - 适合需要高质量的场景
+     *
+     * 缺点：
+     * - 速度较慢（大量浮点运算）
+     *
+     * @param bitmap 待处理位图（ARGB_8888, mutable）
+     * @param radius 模糊半径（0-25），应用于降采样后的图像
+     * @param downscale 降采样比例（0.01-1.0），推荐 0.5
+     *
+     * @throws IllegalArgumentException 如果 Bitmap 格式不是 ARGB_8888 或不可编辑
+     */
+    external fun advancedBoxBlurInplaceHQ(
+        bitmap: Bitmap,
+        radius: Float,
+        downscale: Float = 0.5f
+    )
+
     /**
      * 辅助函数：根据目标半径计算等效 σ
      * 

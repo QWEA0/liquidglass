@@ -65,7 +65,7 @@ void box3_rgba8888_inplace(
 
 /**
  * 单次盒式模糊（内部辅助函数）
- * 
+ *
  * @param src 源数据
  * @param dst 目标数据
  * @param w 宽度
@@ -80,6 +80,77 @@ void box_blur_single_pass(
     int h,
     int stride,
     int radius
+);
+
+/**
+ * AdvancedFastBlur 风格的 Box Blur（降采样优化 - 快速版本）
+ *
+ * 算法流程：
+ * 1. 降采样到指定比例（使用最近邻插值 - 快速）
+ * 2. 在小图上执行 Box Blur
+ * 3. 上采样回原尺寸（使用最近邻插值 - 快速）
+ *
+ * 性能优势：
+ * - 降采样 50% 时，处理像素数减少 75%
+ * - 最近邻插值比双线性插值快 5-10 倍
+ * - 适合实时预览和大图模糊
+ * - 由于后续会模糊，质量损失可接受
+ *
+ * @param src 源图像数据（ARGB_8888）
+ * @param dst 目标图像数据（ARGB_8888，可以与 src 相同）
+ * @param width 图像宽度
+ * @param height 图像高度
+ * @param stride 行跨度（字节数）
+ * @param radius 模糊半径（应用于降采样后的图像）
+ * @param downscale 降采样比例（0.01-1.0），推荐 0.5
+ *
+ * 注意事项：
+ * - 函数会分配临时缓冲区用于降采样和模糊
+ * - downscale < 0.01 会被钳位到 0.01
+ * - downscale > 1.0 会被钳位到 1.0
+ * - radius 会根据 downscale 自动调整
+ */
+void advanced_box_blur_rgba8888(
+    const uint8_t* src,
+    uint8_t* dst,
+    int width,
+    int height,
+    int stride,
+    float radius,
+    float downscale
+);
+
+/**
+ * AdvancedFastBlur 风格的 Box Blur（降采样优化 - 高质量版本）
+ *
+ * 算法流程：
+ * 1. 降采样到指定比例（使用双线性插值 - 高质量）
+ * 2. 在小图上执行 Box Blur
+ * 3. 上采样回原尺寸（使用双线性插值 - 高质量）
+ *
+ * 优势：
+ * - 质量好，平滑无锯齿
+ * - 适合需要高质量的场景
+ *
+ * 缺点：
+ * - 速度较慢（大量浮点运算）
+ *
+ * @param src 源图像数据（ARGB_8888）
+ * @param dst 目标图像数据（ARGB_8888，可以与 src 相同）
+ * @param width 图像宽度
+ * @param height 图像高度
+ * @param stride 行跨度（字节数）
+ * @param radius 模糊半径（应用于降采样后的图像）
+ * @param downscale 降采样比例（0.01-1.0），推荐 0.5
+ */
+void advanced_box_blur_rgba8888_hq(
+    const uint8_t* src,
+    uint8_t* dst,
+    int width,
+    int height,
+    int stride,
+    float radius,
+    float downscale
 );
 
 #endif // BOXBLUR_H

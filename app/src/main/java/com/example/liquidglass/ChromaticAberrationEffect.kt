@@ -37,6 +37,11 @@ class ChromaticAberrationEffect {
     // 性能模式设置（默认自动选择）
     var performanceMode: PerformanceMode = PerformanceMode.AUTO
 
+    // ✅ 双线性插值开关（默认启用）
+    // 启用：高质量，平滑采样，无马赛克（性能开销 2-3 倍）
+    // 禁用：最近邻采样，性能优先，可能有轻微马赛克
+    var useBilinearInterpolation: Boolean = true
+
     // ✅ 复用像素数组，避免每帧创建新数组（仅 Kotlin 版本使用）
     private var cachedSourcePixels: IntArray? = null
     private var cachedMapPixels: IntArray? = null
@@ -175,7 +180,8 @@ class ChromaticAberrationEffect {
                 scale = adjustedScale,
                 redOffset = adjustedRedOffset,
                 greenOffset = adjustedGreenOffset,
-                blueOffset = adjustedBlueOffset
+                blueOffset = adjustedBlueOffset,
+                useBilinear = useBilinearInterpolation
             )
 
             // ✅ 归还临时 Bitmap 到对象池
@@ -312,14 +318,29 @@ class ChromaticAberrationEffect {
                 val bSrcX = x + baseDx + actualBlueOffset
                 val bSrcY = y + baseDy + actualBlueOffset
 
-                // ✅ 使用双线性插值平滑采样
-                val rColor = sampleBilinear(sourcePixels, processWidth, processHeight, rSrcX, rSrcY)
-                val gColor = sampleBilinear(sourcePixels, processWidth, processHeight, gSrcX, gSrcY)
-                val bColor = sampleBilinear(sourcePixels, processWidth, processHeight, bSrcX, bSrcY)
+                // ✅ 根据设置选择采样方法
+                val r: Int
+                val g: Int
+                val b: Int
 
-                val r = Color.red(rColor)
-                val g = Color.green(gColor)
-                val b = Color.blue(bColor)
+                if (useBilinearInterpolation) {
+                    // 双线性插值：高质量，平滑采样，无马赛克（性能开销 2-3 倍）
+                    val rColor = sampleBilinear(sourcePixels, processWidth, processHeight, rSrcX, rSrcY)
+                    val gColor = sampleBilinear(sourcePixels, processWidth, processHeight, gSrcX, gSrcY)
+                    val bColor = sampleBilinear(sourcePixels, processWidth, processHeight, bSrcX, bSrcY)
+                    r = Color.red(rColor)
+                    g = Color.green(gColor)
+                    b = Color.blue(bColor)
+                } else {
+                    // 最近邻采样：性能优先，可能有轻微马赛克
+                    val rColor = samplePixel(sourcePixels, processWidth, processHeight, rSrcX, rSrcY)
+                    val gColor = samplePixel(sourcePixels, processWidth, processHeight, gSrcX, gSrcY)
+                    val bColor = samplePixel(sourcePixels, processWidth, processHeight, bSrcX, bSrcY)
+                    r = Color.red(rColor)
+                    g = Color.green(gColor)
+                    b = Color.blue(bColor)
+                }
+
                 val a = Color.alpha(sourcePixels[index])
 
                 resultPixels[index] = Color.argb(a, r, g, b)
@@ -423,11 +444,18 @@ class ChromaticAberrationEffect {
     }
 
     /**
-     * 从像素数组采样（最近邻采样 - 已弃用）
+     * 从像素数组采样（最近邻采样）
      *
-     * @deprecated 使用 sampleBilinear 获得更平滑的结果
+     * 性能优先的采样方法，速度比双线性插值快 2-3 倍，
+     * 但可能在边缘产生轻微的马赛克效果。
+     *
+     * @param pixels 像素数组
+     * @param width 图像宽度
+     * @param height 图像高度
+     * @param x 采样 X 坐标（可以是小数）
+     * @param y 采样 Y 坐标（可以是小数）
+     * @return 最近邻像素的颜色值
      */
-    @Deprecated("Use sampleBilinear for smoother results")
     private fun samplePixel(pixels: IntArray, width: Int, height: Int, x: Float, y: Float): Int {
         val clampedX = x.roundToInt().coerceIn(0, width - 1)
         val clampedY = y.roundToInt().coerceIn(0, height - 1)

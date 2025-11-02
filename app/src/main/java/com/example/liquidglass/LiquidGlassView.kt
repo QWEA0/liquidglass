@@ -231,6 +231,25 @@ class LiquidGlassView @JvmOverloads constructor(
             }
         }
 
+    /**
+     * 色差效果双线性插值开关
+     *
+     * 控制色差效果的采样质量：
+     * - true: 双线性插值（高质量，平滑采样，无马赛克，性能开销 2-3 倍）
+     * - false: 最近邻采样（性能优先，可能有轻微马赛克）
+     *
+     * 注意：仅对 Kotlin 实现有效，C++ 实现始终使用双线性插值
+     */
+    var aberrationUseBilinearInterpolation: Boolean
+        get() = chromaticAberrationEffect.useBilinearInterpolation
+        set(value) {
+            if (chromaticAberrationEffect.useBilinearInterpolation != value) {
+                chromaticAberrationEffect.useBilinearInterpolation = value
+                aberrationDirty = true
+                invalidate()
+            }
+        }
+
     // 自定义背景捕获器
     private var customBackdropCapture: ((RectF) -> Bitmap?)? = null
 

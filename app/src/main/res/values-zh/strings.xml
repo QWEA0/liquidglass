@@ -21,12 +21,13 @@
     <string name="section_blur_method">模糊算法</string>
     <string name="current_blur_method">当前：智能选择</string>
     <string name="blur_method_smart">智能选择 (推荐)</string>
-    <string name="blur_method_box">传统 Box Blur</string>
+    <string name="blur_method_box">Box Blur (Kotlin)</string>
+    <string name="blur_method_box_cpp">Box Blur (C++)</string>
     <string name="blur_method_iir">IIR 高斯 (标量)</string>
     <string name="blur_method_neon">IIR 高斯 (NEON)</string>
     <string name="blur_method_box3">Box3 快速模糊</string>
     <string name="blur_method_downsample">下采样管线</string>
-    <string name="blur_method_desc">• 智能选择: 自动选择最优算法\n• Box Blur: 传统盒式模糊\n• IIR 高斯: C++ 递归高斯模糊\n• IIR NEON: ARM SIMD 向量化\n• Box3: 3次盒式近似高斯\n• 下采样: 强模糊优化管线</string>
+    <string name="blur_method_desc">• 智能选择: 自动选择最优算法\n• Box Blur (Kotlin): 传统盒式模糊 (Kotlin 实现)\n• Box Blur (C++): 原生盒式模糊 (C++ 实现，更快)\n• IIR 高斯: C++ 递归高斯模糊\n• IIR NEON: ARM SIMD 向量化\n• Box3: 3次盒式近似高斯\n• 下采样: 强模糊优化管线</string>
     
     <!-- Aberration Method Section -->
     <string name="section_aberration_method">色差算法</string>
@@ -101,5 +102,10 @@
     <string name="switch_over_light">亮背景模式</string>
     <string name="border_width">边框宽度: %.1f px</string>
     <string name="highlight_opacity">高光不透明度: %.0f%%</string>
+
+    <!-- 色差质量 -->
+    <string name="section_aberration_quality">色差效果质量</string>
+    <string name="switch_bilinear_interpolation">使用双线性插值（高质量）</string>
+    <string name="bilinear_desc">• 启用：平滑采样，无马赛克（性能开销 2-3 倍）\n• 禁用：最近邻采样，性能优先（可能有轻微马赛克）\n\n注意：同时影响 Kotlin 和 C++ 实现。</string>
 </resources>
 

@@ -193,3 +193,251 @@ void box3_rgba8888_inplace(
     delete[] temp;
 }
 
+/**
+ * 最近邻插值降采样（快速版本）
+ *
+ * 优势：
+ * - 速度快 5-10 倍（无浮点运算）
+ * - 代码简单
+ * - 由于后续会模糊，质量损失可接受
+ */
+static void downsample_nearest(
+    const uint8_t* src,
+    uint8_t* dst,
+    int srcWidth, int srcHeight, int srcStride,
+    int dstWidth, int dstHeight, int dstStride
+) {
+    float scaleX = static_cast<float>(srcWidth) / dstWidth;
+    float scaleY = static_cast<float>(srcHeight) / dstHeight;
+
+    for (int y = 0; y < dstHeight; ++y) {
+        int srcY = static_cast<int>(y * scaleY);
+        srcY = std::min(srcY, srcHeight - 1);
+
+        const uint8_t* srcRow = src + srcY * srcStride;
+        uint8_t* dstRow = dst + y * dstStride;
+
+        for (int x = 0; x < dstWidth; ++x) {
+            int srcX = static_cast<int>(x * scaleX);
+            srcX = std::min(srcX, srcWidth - 1);
+
+            // 直接复制像素（4 字节 RGBA）
+            const uint8_t* srcPixel = srcRow + srcX * 4;
+            uint8_t* dstPixel = dstRow + x * 4;
+
+            dstPixel[0] = srcPixel[0];
+            dstPixel[1] = srcPixel[1];
+            dstPixel[2] = srcPixel[2];
+            dstPixel[3] = srcPixel[3];
+        }
+    }
+}
+
+/**
+ * 双线性插值降采样（高质量版本）
+ *
+ * 优势：
+ * - 质量好，平滑无锯齿
+ * - 适合需要高质量的场景
+ *
+ * 缺点：
+ * - 速度较慢（大量浮点运算）
+ */
+static void downsample_bilinear(
+    const uint8_t* src,
+    uint8_t* dst,
+    int srcWidth, int srcHeight, int srcStride,
+    int dstWidth, int dstHeight, int dstStride
+) {
+    float scaleX = static_cast<float>(srcWidth) / dstWidth;
+    float scaleY = static_cast<float>(srcHeight) / dstHeight;
+
+    for (int y = 0; y < dstHeight; ++y) {
+        for (int x = 0; x < dstWidth; ++x) {
+            // 计算源图像中的浮点坐标
+            float srcX = (x + 0.5f) * scaleX - 0.5f;
+            float srcY = (y + 0.5f) * scaleY - 0.5f;
+
+            // 钳位到有效范围
+            srcX = std::max(0.0f, std::min(srcX, srcWidth - 1.0f));
+            srcY = std::max(0.0f, std::min(srcY, srcHeight - 1.0f));
+
+            // 获取四个邻近像素的坐标
+            int x0 = static_cast<int>(srcX);
+            int y0 = static_cast<int>(srcY);
+            int x1 = std::min(x0 + 1, srcWidth - 1);
+            int y1 = std::min(y0 + 1, srcHeight - 1);
+
+            // 计算插值权重
+            float wx = srcX - x0;
+            float wy = srcY - y0;
+
+            // 获取四个邻近像素
+            const uint8_t* p00 = src + y0 * srcStride + x0 * 4;
+            const uint8_t* p10 = src + y0 * srcStride + x1 * 4;
+            const uint8_t* p01 = src + y1 * srcStride + x0 * 4;
+            const uint8_t* p11 = src + y1 * srcStride + x1 * 4;
+
+            // 双线性插值（每个通道）
+            uint8_t* dstPixel = dst + y * dstStride + x * 4;
+            for (int c = 0; c < 4; ++c) {
+                float v0 = p00[c] * (1 - wx) + p10[c] * wx;
+                float v1 = p01[c] * (1 - wx) + p11[c] * wx;
+                float v = v0 * (1 - wy) + v1 * wy;
+                dstPixel[c] = static_cast<uint8_t>(v + 0.5f);
+            }
+        }
+    }
+}
+
+/**
+ * 最近邻插值上采样（快速版本）
+ */
+static void upsample_nearest(
+    const uint8_t* src,
+    uint8_t* dst,
+    int srcWidth, int srcHeight, int srcStride,
+    int dstWidth, int dstHeight, int dstStride
+) {
+    // 与降采样相同的逻辑
+    downsample_nearest(src, dst, srcWidth, srcHeight, srcStride, dstWidth, dstHeight, dstStride);
+}
+
+/**
+ * 双线性插值上采样（高质量版本）
+ */
+static void upsample_bilinear(
+    const uint8_t* src,
+    uint8_t* dst,
+    int srcWidth, int srcHeight, int srcStride,
+    int dstWidth, int dstHeight, int dstStride
+) {
+    // 与降采样相同的逻辑
+    downsample_bilinear(src, dst, srcWidth, srcHeight, srcStride, dstWidth, dstHeight, dstStride);
+}
+
+/**
+ * AdvancedFastBlur 风格的 Box Blur（降采样优化）
+ */
+void advanced_box_blur_rgba8888(
+    const uint8_t* src,
+    uint8_t* dst,
+    int width,
+    int height,
+    int stride,
+    float radius,
+    float downscale
+) {
+    // 参数校验
+    if (!src || !dst || width <= 0 || height <= 0 || stride < width * 4) {
+        LOGE("Invalid parameters: src=%p, dst=%p, w=%d, h=%d, stride=%d", src, dst, width, height, stride);
+        return;
+    }
+
+    // 钳位参数
+    downscale = std::max(0.01f, std::min(1.0f, downscale));
+    radius = std::max(0.0f, std::min(25.0f, radius));
+
+    // 如果半径太小，直接复制
+    if (radius < 0.5f) {
+        if (src != dst) {
+            for (int y = 0; y < height; ++y) {
+                memcpy(dst + y * stride, src + y * stride, width * 4);
+            }
+        }
+        return;
+    }
+
+    // 计算降采样后的尺寸
+    int smallWidth = std::max(1, static_cast<int>(width * downscale + 0.5f));
+    int smallHeight = std::max(1, static_cast<int>(height * downscale + 0.5f));
+    int smallStride = smallWidth * 4;
+
+    LOGD("AdvancedBoxBlur: %dx%d -> %dx%d (scale=%.2f), radius=%.1f",
+         width, height, smallWidth, smallHeight, downscale, radius);
+
+    // 分配临时缓冲区
+    uint8_t* smallImage = new uint8_t[smallHeight * smallStride];
+    uint8_t* blurredSmall = new uint8_t[smallHeight * smallStride];
+
+    // 1. 降采样（使用最近邻插值 - 快速版本）
+    // 注意：由于后续会模糊，最近邻插值的质量损失可以接受
+    downsample_nearest(src, smallImage, width, height, stride, smallWidth, smallHeight, smallStride);
+
+    // 2. 在小图上模糊（调整半径）
+    float scaledRadius = radius * downscale;
+    int intRadius = std::max(1, static_cast<int>(scaledRadius + 0.5f));
+
+    // 使用单次 Box Blur（而不是三次，以匹配 AdvancedFastBlur 的行为）
+    box_blur_single_pass(smallImage, blurredSmall, smallWidth, smallHeight, smallStride, intRadius);
+
+    // 3. 上采样回原尺寸（使用最近邻插值 - 快速版本）
+    upsample_nearest(blurredSmall, dst, smallWidth, smallHeight, smallStride, width, height, stride);
+
+    // 释放临时缓冲区
+    delete[] smallImage;
+    delete[] blurredSmall;
+}
+
+/**
+ * AdvancedFastBlur 风格的 Box Blur（降采样优化 - 高质量版本）
+ */
+void advanced_box_blur_rgba8888_hq(
+    const uint8_t* src,
+    uint8_t* dst,
+    int width,
+    int height,
+    int stride,
+    float radius,
+    float downscale
+) {
+    // 参数校验
+    if (!src || !dst || width <= 0 || height <= 0 || stride < width * 4) {
+        LOGE("Invalid parameters: src=%p, dst=%p, w=%d, h=%d, stride=%d", src, dst, width, height, stride);
+        return;
+    }
+
+    // 钳位参数
+    downscale = std::max(0.01f, std::min(1.0f, downscale));
+    radius = std::max(0.0f, std::min(25.0f, radius));
+
+    // 如果半径太小，直接复制
+    if (radius < 0.5f) {
+        if (src != dst) {
+            for (int y = 0; y < height; ++y) {
+                memcpy(dst + y * stride, src + y * stride, width * 4);
+            }
+        }
+        return;
+    }
+
+    // 计算降采样后的尺寸
+    int smallWidth = std::max(1, static_cast<int>(width * downscale + 0.5f));
+    int smallHeight = std::max(1, static_cast<int>(height * downscale + 0.5f));
+    int smallStride = smallWidth * 4;
+
+    LOGD("AdvancedBoxBlur HQ: %dx%d -> %dx%d (scale=%.2f), radius=%.1f",
+         width, height, smallWidth, smallHeight, downscale, radius);
+
+    // 分配临时缓冲区
+    uint8_t* smallImage = new uint8_t[smallHeight * smallStride];
+    uint8_t* blurredSmall = new uint8_t[smallHeight * smallStride];
+
+    // 1. 降采样（使用双线性插值 - 高质量）
+    downsample_bilinear(src, smallImage, width, height, stride, smallWidth, smallHeight, smallStride);
+
+    // 2. 在小图上模糊（调整半径）
+    float scaledRadius = radius * downscale;
+    int intRadius = std::max(1, static_cast<int>(scaledRadius + 0.5f));
+
+    // 使用单次 Box Blur（而不是三次，以匹配 AdvancedFastBlur 的行为）
+    box_blur_single_pass(smallImage, blurredSmall, smallWidth, smallHeight, smallStride, intRadius);
+
+    // 3. 上采样回原尺寸（使用双线性插值 - 高质量）
+    upsample_bilinear(blurredSmall, dst, smallWidth, smallHeight, smallStride, width, height, stride);
+
+    // 释放临时缓冲区
+    delete[] smallImage;
+    delete[] blurredSmall;
+}
+

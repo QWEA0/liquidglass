@@ -67,6 +67,7 @@ class ProfessionalDemoActivity : AppCompatActivity() {
     private lateinit var switchEnableBlur: Switch
     private lateinit var switchEnableAberration: Switch
     private lateinit var switchEnableSaturation: Switch
+    private lateinit var switchBilinearInterpolation: Switch
 
     private lateinit var tvBlur: TextView
     private lateinit var tvSaturation: TextView
@@ -409,6 +410,9 @@ class ProfessionalDemoActivity : AppCompatActivity() {
 
         spinnerBlurMethod = Spinner(this).apply {
             id = View.generateViewId()
+            // ✅ 优化 Spinner 可见性：添加背景和内边距
+            setBackgroundColor(Color.WHITE)
+            setPadding(16, 16, 16, 16)
         }
         container.addView(spinnerBlurMethod)
 
@@ -437,6 +441,9 @@ class ProfessionalDemoActivity : AppCompatActivity() {
 
         spinnerAberrationMethod = Spinner(this).apply {
             id = View.generateViewId()
+            // ✅ 优化 Spinner 可见性：添加背景和内边距
+            setBackgroundColor(Color.WHITE)
+            setPadding(16, 16, 16, 16)
         }
         container.addView(spinnerAberrationMethod)
 
@@ -448,6 +455,31 @@ class ProfessionalDemoActivity : AppCompatActivity() {
             setPadding(0, 8, 0, 0)
         }
         container.addView(aberrationMethodDesc)
+
+        container.addView(createDivider())
+
+        // 色差质量设置
+        container.addView(createSectionTitle(getString(R.string.section_aberration_quality)))
+
+        switchBilinearInterpolation = Switch(this).apply {
+            id = View.generateViewId()
+            text = getString(R.string.switch_bilinear_interpolation)
+            setTextColor(Color.BLACK)
+            isChecked = true  // 默认启用双线性插值
+            setOnCheckedChangeListener { _, isChecked ->
+                glassView.aberrationUseBilinearInterpolation = isChecked
+            }
+        }
+        container.addView(switchBilinearInterpolation)
+
+        // 双线性插值说明
+        val bilinearDesc = TextView(this).apply {
+            text = getString(R.string.bilinear_desc)
+            textSize = 10f
+            setTextColor(0xFF666666.toInt())
+            setPadding(0, 8, 0, 0)
+        }
+        container.addView(bilinearDesc)
 
         container.addView(createDivider())
 
@@ -981,6 +1013,7 @@ class ProfessionalDemoActivity : AppCompatActivity() {
         val blurMethods = arrayOf(
             getString(R.string.blur_method_smart),
             getString(R.string.blur_method_box),
+            getString(R.string.blur_method_box_cpp),
             getString(R.string.blur_method_iir),
             getString(R.string.blur_method_neon),
             getString(R.string.blur_method_box3),
@@ -996,10 +1029,11 @@ class ProfessionalDemoActivity : AppCompatActivity() {
                 glassView.blurMethod = when (position) {
                     0 -> BlurMethod.SMART
                     1 -> BlurMethod.BOX_BLUR
-                    2 -> BlurMethod.IIR_GAUSSIAN
-                    3 -> BlurMethod.IIR_GAUSSIAN_NEON
-                    4 -> BlurMethod.BOX3
-                    5 -> BlurMethod.DOWNSAMPLE
+                    2 -> BlurMethod.BOX_BLUR_CPP
+                    3 -> BlurMethod.IIR_GAUSSIAN
+                    4 -> BlurMethod.IIR_GAUSSIAN_NEON
+                    5 -> BlurMethod.BOX3
+                    6 -> BlurMethod.DOWNSAMPLE
                     else -> BlurMethod.SMART
                 }
                 tvBlurMethod.text = "${getString(R.string.current_blur_method).substringBefore(':')}：${blurMethods[position]}"
@@ -1143,7 +1177,8 @@ class ProfessionalDemoActivity : AppCompatActivity() {
                     // 获取当前算法信息
                     val blurMethodName = when (glassView.blurMethod) {
                         BlurMethod.SMART -> "智能"
-                        BlurMethod.BOX_BLUR -> "Box"
+                        BlurMethod.BOX_BLUR -> "Box(KT)"
+                        BlurMethod.BOX_BLUR_CPP -> "Box(C++)"
                         BlurMethod.IIR_GAUSSIAN -> "IIR"
                         BlurMethod.IIR_GAUSSIAN_NEON -> "NEON"
                         BlurMethod.BOX3 -> "Box3"
@@ -1239,7 +1274,8 @@ class ProfessionalDemoActivity : AppCompatActivity() {
     private fun getBlurMethodDescription(): String {
         return when (glassView.blurMethod) {
             BlurMethod.SMART -> "自动选择最优算法"
-            BlurMethod.BOX_BLUR -> "传统盒式模糊"
+            BlurMethod.BOX_BLUR -> "传统盒式模糊 (Kotlin)"
+            BlurMethod.BOX_BLUR_CPP -> "盒式模糊 (C++ 原生)"
             BlurMethod.IIR_GAUSSIAN -> "C++ 递归高斯(标量)"
             BlurMethod.IIR_GAUSSIAN_NEON -> "C++ 递归高斯(NEON)"
             BlurMethod.BOX3 -> "3次盒式近似高斯"

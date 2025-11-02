@@ -72,7 +72,10 @@ object NativeChromaticAberration {
      *                    - 控制绿色通道的额外位移
      * @param blueOffset 蓝色通道偏移量（默认 -0.1）
      *                   - 控制蓝色通道的额外位移
-     * 
+     * @param useBilinear 是否使用双线性插值（默认 true）
+     *                    - true: 双线性插值（高质量，平滑采样，无马赛克）
+     *                    - false: 最近邻采样（高性能，速度快 2-3 倍，可能有轻微马赛克）
+     *
      * @throws IllegalArgumentException 如果 Bitmap 格式不是 ARGB_8888 或不可编辑
      * @throws IllegalArgumentException 如果 source、displacement、result 尺寸不一致
      */
@@ -84,12 +87,13 @@ object NativeChromaticAberration {
         scale: Float = 70.0f,
         redOffset: Float = 0.0f,
         greenOffset: Float = -0.05f,
-        blueOffset: Float = -0.1f
+        blueOffset: Float = -0.1f,
+        useBilinear: Boolean = true
     )
 
     /**
      * 应用色差效果（便捷方法，创建新的结果 Bitmap）
-     * 
+     *
      * @param source 源图像
      * @param displacement 位移贴图
      * @param intensity 色差强度
@@ -97,6 +101,7 @@ object NativeChromaticAberration {
      * @param redOffset 红色通道偏移量
      * @param greenOffset 绿色通道偏移量
      * @param blueOffset 蓝色通道偏移量
+     * @param useBilinear 是否使用双线性插值（默认 true）
      * @return 应用色差后的新图像
      */
     fun apply(
@@ -106,7 +111,8 @@ object NativeChromaticAberration {
         scale: Float = 70.0f,
         redOffset: Float = 0.0f,
         greenOffset: Float = -0.05f,
-        blueOffset: Float = -0.1f
+        blueOffset: Float = -0.1f,
+        useBilinear: Boolean = true
     ): Bitmap {
         // 创建结果 Bitmap
         val result = Bitmap.createBitmap(
@@ -114,7 +120,7 @@ object NativeChromaticAberration {
             source.height,
             Bitmap.Config.ARGB_8888
         )
-        
+
         // 调用原位处理函数
         chromaticAberrationInplace(
             source,
@@ -124,9 +130,10 @@ object NativeChromaticAberration {
             scale,
             redOffset,
             greenOffset,
-            blueOffset
+            blueOffset,
+            useBilinear
         )
-        
+
         return result
     }
 

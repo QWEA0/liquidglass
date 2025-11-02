@@ -166,12 +166,13 @@ class EnhancedBlurEffect(
      */
     private fun applyBlur(bitmap: Bitmap, radius: Float): Bitmap {
         val clampedRadius = radius.coerceIn(0f, 25f)
-        
+
         // 转换为 σ 值（用于 IIR 高斯）
         val sigma = clampedRadius * RADIUS_TO_SIGMA
-        
+
         return when (blurMethod) {
             BlurMethod.BOX_BLUR -> applyBoxBlur(bitmap, clampedRadius)
+            BlurMethod.BOX_BLUR_CPP -> applyBoxBlurCpp(bitmap, clampedRadius)
             BlurMethod.IIR_GAUSSIAN -> applyIIRGaussian(bitmap, sigma)
             BlurMethod.IIR_GAUSSIAN_NEON -> applyIIRGaussianNeon(bitmap, sigma)
             BlurMethod.BOX3 -> applyBox3(bitmap, sigma)
@@ -181,7 +182,7 @@ class EnhancedBlurEffect(
     }
     
     /**
-     * 传统 Box Blur（使用 AdvancedFastBlur）
+     * 传统 Box Blur（使用 AdvancedFastBlur - Kotlin 实现）
      */
     private fun applyBoxBlur(bitmap: Bitmap, radius: Float): Bitmap {
         return fastBlur.blur(
@@ -190,7 +191,29 @@ class EnhancedBlurEffect(
             downscale = 0.5f  // 降采样 50%
         )
     }
-    
+
+    /**
+     * C++ Box Blur（使用 C++ 原生实现）
+     */
+    private fun applyBoxBlurCpp(bitmap: Bitmap, radius: Float): Bitmap {
+        // 创建可编辑副本
+        val mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+
+        try {
+            NativeGauss.advancedBoxBlurInplace(
+                bitmap = mutableBitmap,
+                radius = radius,
+                downscale = 0.5f  // 降采样 50%
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "C++ Box Blur failed: ${e.message}")
+            // 回退到 Kotlin Box Blur
+            return applyBoxBlur(bitmap, radius)
+        }
+
+        return mutableBitmap
+    }
+
     /**
      * IIR 递归高斯模糊（标量版本）
      */
