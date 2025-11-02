@@ -6,6 +6,8 @@
 
 **令人惊艳的 Android 液态玻璃 UI 组件库**
 
+<img src="assets\2983473432.jpg" alt="LiquidGlass Demo Screenshot" width="460">
+
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Android-green.svg)](https://developer.android.com)
 [![API](https://img.shields.io/badge/API-24%2B-brightgreen.svg)](https://android-arsenal.com/api?level=24)
@@ -37,12 +39,9 @@ A high-performance glassmorphism UI component library for Android, featuring rea
 <div align="center">
 
 #### 🎬 Video Demo
+<img src="assets\mmexport1762090985763.gif" alt="LiquidGlass Demo Screenshot" width="460">
 
-<video controls src="https://github.com/QWEA0/Liquid-Glass-Android/blob/main/assets/2106699696.mp4" title="https://github.com/QWEA0/liquidglass/assets/2106699696.mp4"></video>
 
-#### 📸 Screenshot
-
-<img src="assets\2983473432.jpg" alt="LiquidGlass Demo Screenshot" width="300">
 
 </div>
 
