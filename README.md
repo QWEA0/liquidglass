@@ -38,7 +38,7 @@ A high-performance glassmorphism UI component library for Android, featuring rea
 
 #### 🎬 Video Demo
 
-https://github.com/QWEA0/liquidglass/assets/2106699696.mp4
+<video controls src="https://github.com/QWEA0/Liquid-Glass-Android/blob/main/assets/2106699696.mp4" title="https://github.com/QWEA0/liquidglass/assets/2106699696.mp4"></video>
 
 #### 📸 Screenshot
 
