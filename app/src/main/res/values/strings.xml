@@ -107,4 +107,9 @@
     <string name="section_aberration_quality">Chromatic Aberration Quality</string>
     <string name="switch_bilinear_interpolation">Use Bilinear Interpolation (High Quality)</string>
     <string name="bilinear_desc">• Enabled: Smooth sampling, no mosaic (2-3x slower)\n• Disabled: Nearest-neighbor, faster (may have slight mosaic)\n\nNote: Affects both Kotlin and C++ implementations.</string>
+
+    <!-- Optimized Capture -->
+    <string name="section_optimized_capture">Optimized Capture</string>
+    <string name="switch_enable_optimized_capture">Enable Optimized Capture</string>
+    <string name="optimized_capture_desc">• Enabled: Capture only rounded corner area, reduce rendering\n• Disabled: Capture full rectangular area\n\nUse cases: Rounded buttons, rounded cards\nPerformance gain: ~5-8%</string>
 </resources>

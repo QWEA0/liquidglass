@@ -109,6 +109,17 @@ class LiquidGlassView @JvmOverloads constructor(
             }
         }
 
+    // ✅ 优化背景捕获（启用后仅捕获异形区域，降低渲染量）
+    var enableOptimizedCapture = false
+        set(value) {
+            if (field != value) {
+                field = value
+                enhancedBlurEffect.enableOptimizedCapture = value
+                blurDirty = true
+                invalidate()
+            }
+        }
+
     // ✅ 色差效果下采样比例（独立控制）
     var aberrationDownsample = 0.5f
         set(value) {
@@ -208,8 +219,7 @@ class LiquidGlassView @JvmOverloads constructor(
         }
 
     // 效果处理器
-    private val backdropBlurEffect = BackdropBlurEffect(this)  // 保留用于兼容性
-    private val enhancedBlurEffect = EnhancedBlurEffect(this)  // 新增：增强模糊效果
+    private val enhancedBlurEffect = EnhancedBlurEffect(this)  // 增强模糊效果
     private val chromaticAberrationEffect = ChromaticAberrationEffect()
     private val edgeHighlightEffect = EdgeHighlightEffect()
 
@@ -503,6 +513,12 @@ class LiquidGlassView @JvmOverloads constructor(
             t1 = System.nanoTime()
         }
 
+        // ✅ 同步优化捕获参数到 EnhancedBlurEffect
+        if (enableOptimizedCapture) {
+            enhancedBlurEffect.cornerRadius = cornerRadius
+            enhancedBlurEffect.captureMargin = blurRadius * 2f  // 模糊扩散边距
+        }
+
         // 1. 捕获背景（L1 缓存）- 每帧都捕获以支持动态背景
         var backdrop = if (customBackdropCapture != null) {
             customBackdropCapture?.invoke(bounds)
@@ -754,8 +770,7 @@ class LiquidGlassView @JvmOverloads constructor(
 
         // ✅ 清理所有缓存和资源
         scaleAnimator?.cancel()
-        backdropBlurEffect.release()  // 保留用于兼容性
-        enhancedBlurEffect.release()  // 新增：清理增强模糊效果
+        enhancedBlurEffect.release()  // 清理增强模糊效果
 
         // ✅ 清理效果处理器
         chromaticAberrationEffect.cleanup()

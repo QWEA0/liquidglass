@@ -1,4 +1,6 @@
-# LiquidGlass Android
+<p align="center">
+  <img src="assets\preview.png" alt="Liquid Glass Android Preview" width="100%"/>
+</p>
 
 <div align="center">
 
@@ -7,8 +9,8 @@
 **令人惊艳的 Android 液态玻璃 UI 组件库**
 
 <p align="center">
-  <img src="assets\2983473432.jpg" alt="LiquidGlass Demo Screenshot" width="460">
-  <img src="assets\2323232323233.jpg" alt="LiquidGlass Demo Screenshot" width="460">
+  <img src="assets\2983473432.jpg" alt="LiquidGlass Demo Screenshot" width="260">
+  <img src="assets\2323232323233.jpg" alt="LiquidGlass Demo Screenshot" width="260">
 </p>
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -42,19 +44,10 @@ A high-performance glassmorphism UI component library for Android, featuring rea
 <div align="center">
 
 #### 🎬 Video Demo
-<img src="assets\mmexport1762090985763.gif" alt="LiquidGlass Demo Screenshot" width="460">
-<img src="assets\1762103926407.gif" alt="LiquidGlass Demo Screenshot" width="460">
+<img src="assets\mmexport1762090985763.gif" alt="LiquidGlass Demo Screenshot" width="260">
+<img src="assets\1762103926407.gif" alt="LiquidGlass Demo Screenshot" width="260">
 
 </div>
-
-The demo app showcases:
-- Scrollable colorful background with infinite tiling support
-- Floating glass button with real-time effects
-- Debug panel with live parameter adjustment
-- Performance monitoring overlay
-- Custom background image selection from gallery
-- Bilingual UI (English/Chinese) with language switching
-- Edge highlight controls (border width, opacity, over light mode)
 
 ### 🚀 Quick Start
 
@@ -182,7 +175,10 @@ Inspired by the glassmorphism design trend and liquid-glass-react library.
 ## 🌊 LiquidGlass Android
 
 一个高性能的 Android 液态玻璃 UI 组件库，具有实时背景模糊、色差效果和液态交互特性。
-
+<p align="center">
+  <img src="assets\2983473432.jpg" alt="LiquidGlass Demo Screenshot" width="260">
+  <img src="assets\2323232323233.jpg" alt="LiquidGlass Demo Screenshot" width="260">
+</p>
 ### ✨ 特性
 
 - **🎨 实时背景模糊** - 动态背景模糊，可调节模糊半径和饱和度
@@ -197,24 +193,11 @@ Inspired by the glassmorphism design trend and liquid-glass-react library.
 
 <div align="center">
 
-#### 🎬 视频演示
-
-https://github.com/QWEA0/liquidglass/assets/2106699696.mp4
-
-#### 📸 截图
-
-<img src="2983473432.jpg" alt="LiquidGlass 演示截图" width="300">
+#### 🎬 Video Demo
+<img src="assets\mmexport1762090985763.gif" alt="LiquidGlass Demo Screenshot" width="260">
+<img src="assets\1762103926407.gif" alt="LiquidGlass Demo Screenshot" width="260">
 
 </div>
-
-演示应用展示：
-- 支持无限拼接的可滚动彩色背景
-- 带实时效果的悬浮玻璃按钮
-- 实时参数调节的调试面板
-- 性能监控覆盖层
-- 从相册选择自定义背景图片
-- 双语界面（中文/英文）支持语言切换
-- 边缘高光控制（边框宽度、不透明度、亮背景模式）
 
 ### 🚀 快速开始
 

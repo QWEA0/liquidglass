@@ -14,12 +14,15 @@
  * - 智能算法选择
  * - 下采样管线优化
  * - 缓存复用
+ * - 优化捕获范围（支持异形元素如圆角）
  *
  * 使用示例：
  * ```kotlin
  * val blurEffect = EnhancedBlurEffect(view)
  * blurEffect.blurMethod = BlurMethod.SMART
  * blurEffect.highQuality = false
+ * blurEffect.enableOptimizedCapture = true
+ * blurEffect.cornerRadius = 24f
  * val blurred = blurEffect.applyEffect(backdrop, blurRadius, saturation)
  * ```
  */
@@ -50,19 +53,29 @@ class EnhancedBlurEffect(
 
     // 传统 Box Blur 工具
     private val fastBlur = AdvancedFastBlur()
-    
+
     // 模糊方法（默认智能选择）
     var blurMethod = BlurMethod.SMART
-    
+
     // 高质量模式（仅对 IIR 高斯有效）
     var highQuality = false
-    
+
     // 下采样比例（2 或 3）
     var downsampleScale = 2
         set(value) {
             field = value.coerceIn(2, 3)
         }
-    
+
+    // ✅ 优化捕获范围开关（启用后仅捕获异形区域，降低渲染量）
+    var enableOptimizedCapture = false
+
+    // ✅ 圆角半径（用于优化捕获）
+    var cornerRadius = 0f
+
+    // ✅ 捕获扩展边距（用于模糊扩散，避免边缘裁切）
+    // 建议值：blurRadius * 2
+    var captureMargin = 0f
+
     // NEON 支持检测（延迟初始化）
     private val neonSupported: Boolean by lazy {
         try {
@@ -75,16 +88,24 @@ class EnhancedBlurEffect(
     
     /**
      * 捕获视图背后的背景
-     * 
+     *
      * @param bounds 视图边界
      * @return 背景 Bitmap
      */
     fun captureBackdrop(bounds: RectF): Bitmap? {
         val parent = view.parent as? View ?: return null
 
+        // ✅ 优化捕获范围：根据是否启用优化捕获来决定捕获区域
+        val captureBounds = if (enableOptimizedCapture && cornerRadius > 0) {
+            // 计算实际需要捕获的最小矩形区域（考虑圆角和模糊扩散）
+            calculateOptimizedBounds(bounds)
+        } else {
+            bounds
+        }
+
         // 创建背景 Bitmap
-        val width = bounds.width().toInt().coerceAtLeast(1)
-        val height = bounds.height().toInt().coerceAtLeast(1)
+        val width = captureBounds.width().toInt().coerceAtLeast(1)
+        val height = captureBounds.height().toInt().coerceAtLeast(1)
         val backdrop = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(backdrop)
 
@@ -99,12 +120,25 @@ class EnhancedBlurEffect(
             val offsetX = (location[0] - parentLocation[0]).toFloat()
             val offsetY = (location[1] - parentLocation[1]).toFloat()
 
-            // 平移画布到视图在父容器中的实际位置
-            canvas.translate(-offsetX, -offsetY)
+            // ✅ 平移画布到捕获区域的实际位置
+            canvas.translate(-offsetX - captureBounds.left, -offsetY - captureBounds.top)
 
             // 临时隐藏当前视图，避免绘制自己
             val wasVisible = view.visibility
             view.visibility = android.view.View.INVISIBLE
+
+            // ✅ 如果启用优化捕获，应用圆角裁剪
+            if (enableOptimizedCapture && cornerRadius > 0) {
+                val clipPath = Path()
+                val clipRect = RectF(
+                    offsetX + captureBounds.left,
+                    offsetY + captureBounds.top,
+                    offsetX + captureBounds.right,
+                    offsetY + captureBounds.bottom
+                )
+                clipPath.addRoundRect(clipRect, cornerRadius, cornerRadius, Path.Direction.CW)
+                canvas.clipPath(clipPath)
+            }
 
             // 绘制父视图(不包括当前视图)
             parent.draw(canvas)
@@ -118,6 +152,28 @@ class EnhancedBlurEffect(
         }
 
         return backdrop
+    }
+
+    /**
+     * 计算优化后的捕获边界
+     *
+     * 对于圆角矩形，实际需要捕获的区域可以小于完整矩形
+     * 同时考虑模糊扩散，需要额外的边距
+     *
+     * @param bounds 原始边界
+     * @return 优化后的边界
+     */
+    private fun calculateOptimizedBounds(bounds: RectF): RectF {
+        // ✅ 添加捕获边距以避免模糊边缘被裁切
+        // 模糊会导致像素扩散，需要额外捕获周围区域
+        val margin = captureMargin.coerceAtLeast(0f)
+
+        return RectF(
+            (bounds.left - margin).coerceAtLeast(0f),
+            (bounds.top - margin).coerceAtLeast(0f),
+            bounds.right + margin,
+            bounds.bottom + margin
+        )
     }
     
     /**

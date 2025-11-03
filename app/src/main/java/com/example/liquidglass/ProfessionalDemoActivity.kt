@@ -789,6 +789,33 @@ class ProfessionalDemoActivity : AppCompatActivity() {
 
         container.addView(createDivider())
 
+        // ✅ 优化捕获设置
+        container.addView(createSectionTitle(getString(R.string.section_optimized_capture)))
+
+        // 启用优化捕获开关
+        val switchEnableOptimizedCapture = Switch(this).apply {
+            id = View.generateViewId()
+            text = getString(R.string.switch_enable_optimized_capture)
+            setTextColor(Color.BLACK)
+            isChecked = false  // 默认关闭
+            setOnCheckedChangeListener { _, isChecked ->
+                glassView.enableOptimizedCapture = isChecked
+            }
+        }
+        container.addView(switchEnableOptimizedCapture)
+
+        // 优化捕获说明
+        val tvOptimizedCaptureDesc = TextView(this).apply {
+            id = View.generateViewId()
+            text = getString(R.string.optimized_capture_desc)
+            textSize = 11f
+            setTextColor(0xFF666666.toInt())
+            setPadding(0, 8, 0, 16)
+        }
+        container.addView(tvOptimizedCaptureDesc)
+
+        container.addView(createDivider())
+
         // 图片尺寸信息
         container.addView(createSectionTitle(getString(R.string.section_image_size)))
 
