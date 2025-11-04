@@ -63,7 +63,7 @@ Thumbs.db
 
 # Gradle cache
 .gradle/
+/liquid-glass-studio
 gradle-app.setting
 !gradle-wrapper.jar
 .gitattributes
-.gitignore

@@ -1,7 +1,4 @@
-<p align="center">
-  <img src="assets\preview.png" alt="Liquid Glass Android Preview" width="100%"/>
-</p>
-
+![frontPhoto](assets/banner.png)
 <div align="center">
 
 **A stunning glassmorphism UI component library for Android**
