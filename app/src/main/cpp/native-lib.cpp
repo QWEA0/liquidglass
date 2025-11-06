@@ -393,3 +393,140 @@ Java_com_example_liquidglass_NativeChromaticAberration_chromaticAberrationInplac
     AndroidBitmap_unlockPixels(env, result);
 }
 
+/**
+ * JNI: chromaticDispersionInplace
+ *
+ * 应用色散效果（Chromatic Dispersion）- 基于物理光学原理
+ *
+ * @param source 源图像 Bitmap
+ * @param edgeDistance 边缘距离贴图 Bitmap
+ * @param normalMap 法线贴图 Bitmap（可选，传 null 使用径向法线）
+ * @param result 结果图像 Bitmap
+ * @param refThickness 折射厚度（像素，推荐 50-200）
+ * @param refFactor 折射系数（推荐 1.2-2.0）
+ * @param refDispersion 色散增益（推荐 0-20）
+ * @param dpr 设备像素比（默认 1.0）
+ * @param useBilinear 是否使用双线性插值（默认 true）
+ */
+extern "C" JNIEXPORT void JNICALL
+Java_com_example_liquidglass_NativeChromaticDispersion_chromaticDispersionInplace(
+    JNIEnv* env,
+    jobject /* this */,
+    jobject source,
+    jobject edgeDistance,
+    jobject normalMap,
+    jobject result,
+    jfloat refThickness,
+    jfloat refFactor,
+    jfloat refDispersion,
+    jfloat dpr,
+    jboolean useBilinear
+) {
+    AndroidBitmapInfo sourceInfo, edgeDistanceInfo, normalMapInfo, resultInfo;
+    void* sourcePixels = nullptr;
+    void* edgeDistancePixels = nullptr;
+    void* normalMapPixels = nullptr;
+    void* resultPixels = nullptr;
+
+    // 锁定源图像
+    if (!lock_bitmap(env, source, &sourceInfo, &sourcePixels)) {
+        return;
+    }
+
+    // 锁定边缘距离贴图
+    if (!lock_bitmap(env, edgeDistance, &edgeDistanceInfo, &edgeDistancePixels)) {
+        AndroidBitmap_unlockPixels(env, source);
+        return;
+    }
+
+    // 锁定法线贴图（可选）
+    bool hasNormalMap = (normalMap != nullptr);
+    if (hasNormalMap) {
+        if (!lock_bitmap(env, normalMap, &normalMapInfo, &normalMapPixels)) {
+            AndroidBitmap_unlockPixels(env, source);
+            AndroidBitmap_unlockPixels(env, edgeDistance);
+            return;
+        }
+    }
+
+    // 锁定结果图像
+    if (!lock_bitmap(env, result, &resultInfo, &resultPixels)) {
+        AndroidBitmap_unlockPixels(env, source);
+        AndroidBitmap_unlockPixels(env, edgeDistance);
+        if (hasNormalMap) {
+            AndroidBitmap_unlockPixels(env, normalMap);
+        }
+        return;
+    }
+
+    // 验证尺寸一致性
+    if (sourceInfo.width != edgeDistanceInfo.width ||
+        sourceInfo.height != edgeDistanceInfo.height ||
+        sourceInfo.width != resultInfo.width ||
+        sourceInfo.height != resultInfo.height) {
+        LOGE("Bitmap size mismatch: source=%dx%d, edgeDistance=%dx%d, result=%dx%d",
+             sourceInfo.width, sourceInfo.height,
+             edgeDistanceInfo.width, edgeDistanceInfo.height,
+             resultInfo.width, resultInfo.height);
+
+        AndroidBitmap_unlockPixels(env, source);
+        AndroidBitmap_unlockPixels(env, edgeDistance);
+        if (hasNormalMap) {
+            AndroidBitmap_unlockPixels(env, normalMap);
+        }
+        AndroidBitmap_unlockPixels(env, result);
+
+        jclass exClass = env->FindClass("java/lang/IllegalArgumentException");
+        env->ThrowNew(exClass, "Source, edgeDistance, and result bitmaps must have the same dimensions");
+        return;
+    }
+
+    // 如果有法线贴图，也验证尺寸
+    if (hasNormalMap) {
+        if (sourceInfo.width != normalMapInfo.width || sourceInfo.height != normalMapInfo.height) {
+            LOGE("Normal map size mismatch: source=%dx%d, normalMap=%dx%d",
+                 sourceInfo.width, sourceInfo.height,
+                 normalMapInfo.width, normalMapInfo.height);
+
+            AndroidBitmap_unlockPixels(env, source);
+            AndroidBitmap_unlockPixels(env, edgeDistance);
+            AndroidBitmap_unlockPixels(env, normalMap);
+            AndroidBitmap_unlockPixels(env, result);
+
+            jclass exClass = env->FindClass("java/lang/IllegalArgumentException");
+            env->ThrowNew(exClass, "Normal map must have the same dimensions as source");
+            return;
+        }
+    }
+
+    // 调用底层算法
+    LOGD("chromaticDispersionInplace: %dx%d, refThickness=%.2f, refFactor=%.2f, refDispersion=%.2f, dpr=%.2f, useBilinear=%d",
+         sourceInfo.width, sourceInfo.height, refThickness, refFactor, refDispersion, dpr, useBilinear);
+
+    chromatic_dispersion_rgba8888(
+        static_cast<const uint8_t*>(sourcePixels),
+        static_cast<const uint8_t*>(edgeDistancePixels),
+        hasNormalMap ? static_cast<const uint8_t*>(normalMapPixels) : nullptr,
+        static_cast<uint8_t*>(resultPixels),
+        static_cast<int>(sourceInfo.width),
+        static_cast<int>(sourceInfo.height),
+        static_cast<int>(sourceInfo.stride),
+        static_cast<int>(edgeDistanceInfo.stride),
+        hasNormalMap ? static_cast<int>(normalMapInfo.stride) : 0,
+        static_cast<int>(resultInfo.stride),
+        refThickness,
+        refFactor,
+        refDispersion,
+        dpr,
+        useBilinear
+    );
+
+    // 解锁所有 Bitmap
+    AndroidBitmap_unlockPixels(env, source);
+    AndroidBitmap_unlockPixels(env, edgeDistance);
+    if (hasNormalMap) {
+        AndroidBitmap_unlockPixels(env, normalMap);
+    }
+    AndroidBitmap_unlockPixels(env, result);
+}
+

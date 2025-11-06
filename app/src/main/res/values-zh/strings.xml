@@ -41,6 +41,7 @@
     <string name="section_effect_switches">效果开关</string>
     <string name="switch_enable_blur">启用模糊效果</string>
     <string name="switch_enable_aberration">启用色差效果</string>
+    <string name="switch_enable_chromatic_effect">启用色散/色差效果</string>
     <string name="switch_enable_saturation">启用饱和度调节</string>
     
     <!-- Parameters -->
@@ -107,6 +108,29 @@
     <string name="section_aberration_quality">色差效果质量</string>
     <string name="switch_bilinear_interpolation">使用双线性插值（高质量）</string>
     <string name="bilinear_desc">• 启用：平滑采样，无马赛克（性能开销 2-3 倍）\n• 禁用：最近邻采样，性能优先（可能有轻微马赛克）\n\n注意：同时影响 Kotlin 和 C++ 实现。</string>
+
+    <!-- 色散效果（新增） -->
+    <string name="section_chromatic_dispersion">色散效果（基于物理光学）</string>
+    <string name="switch_enable_dispersion">启用色散效果</string>
+    <string name="dispersion_desc">基于 Snell 定律的物理色散效果。\n• 真实的玻璃/水晶效果\n• 边缘折射\n• RGB 波长分离</string>
+
+    <string name="dispersion_thickness">折射厚度: %.0fpx</string>
+    <string name="dispersion_factor">折射系数: %.2f</string>
+    <string name="dispersion_gain">色散增益: %.1f</string>
+    <string name="dispersion_downscale">色散降采样: %.2fx</string>
+
+    <string name="dispersion_preset">色散预设</string>
+    <string name="preset_glass">玻璃</string>
+    <string name="preset_diamond">钻石</string>
+    <string name="preset_crystal">水晶</string>
+    <string name="preset_rainbow">彩虹</string>
+    <string name="preset_subtle">轻微</string>
+    <string name="preset_custom">自定义</string>
+
+    <!-- 效果算法选择 -->
+    <string name="effect_algorithm">效果算法</string>
+    <string name="algorithm_aberration">色差效果</string>
+    <string name="algorithm_dispersion">色散效果</string>
 
     <!-- 优化捕获 -->
     <string name="section_optimized_capture">优化捕获</string>

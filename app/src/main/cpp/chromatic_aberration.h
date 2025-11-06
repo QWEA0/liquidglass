@@ -114,5 +114,84 @@ void chromatic_aberration_rgba8888_inplace(
     bool useBilinear = true
 );
 
+/**
+ * 色散效果处理（Chromatic Dispersion Effect）- 基于物理光学原理
+ *
+ * 使用 Snell 定律模拟真实的玻璃色散效果，不同波长的光有不同的折射率
+ *
+ * @param source 源图像像素数据（ARGB_8888）
+ * @param edgeDistance 边缘距离贴图（ARGB_8888）
+ *                     - R/G/B 通道：到边缘的距离（0=边缘，255=中心）
+ * @param normalMap 法线贴图（ARGB_8888，可选，传 nullptr 使用径向法线）
+ *                  - R 通道：法线 X 分量（0-255，128 为 0）
+ *                  - G 通道：法线 Y 分量（0-255，128 为 0）
+ * @param result 结果图像像素数据（ARGB_8888）
+ * @param width 图像宽度
+ * @param height 图像高度
+ * @param sourceStride 源图像行跨度（字节数）
+ * @param edgeDistanceStride 边缘距离贴图行跨度（字节数）
+ * @param normalMapStride 法线贴图行跨度（字节数，如果 normalMap 为 nullptr 则忽略）
+ * @param resultStride 结果图像行跨度（字节数）
+ * @param refThickness 折射厚度（像素，推荐 50-200）
+ * @param refFactor 折射系数（推荐 1.2-2.0，玻璃约 1.5）
+ * @param refDispersion 色散增益（推荐 0-20，玻璃约 7）
+ * @param dpr 设备像素比（默认 1.0）
+ * @param useBilinear 是否使用双线性插值（默认 true）
+ *
+ * 物理原理：
+ * - 基于 Snell 定律：n₁ sin(θ₁) = n₂ sin(θ₂)
+ * - 不同波长的折射率：N_R = 0.98, N_G = 1.0, N_B = 1.02
+ * - 边缘距离越近，折射效果越强
+ * - 沿法线方向应用折射偏移
+ */
+void chromatic_dispersion_rgba8888(
+    const uint8_t* source,
+    const uint8_t* edgeDistance,
+    const uint8_t* normalMap,
+    uint8_t* result,
+    int width,
+    int height,
+    int sourceStride,
+    int edgeDistanceStride,
+    int normalMapStride,
+    int resultStride,
+    float refThickness,
+    float refFactor,
+    float refDispersion,
+    float dpr = 1.0f,
+    bool useBilinear = true
+);
+
+/**
+ * 色散效果处理（原位版本，简化参数）
+ *
+ * @param source 源图像像素数据
+ * @param edgeDistance 边缘距离贴图
+ * @param normalMap 法线贴图（可选，传 nullptr 使用径向法线）
+ * @param result 结果图像像素数据
+ * @param width 图像宽度
+ * @param height 图像高度
+ * @param stride 行跨度（字节数）
+ * @param refThickness 折射厚度
+ * @param refFactor 折射系数
+ * @param refDispersion 色散增益
+ * @param dpr 设备像素比
+ * @param useBilinear 是否使用双线性插值
+ */
+void chromatic_dispersion_rgba8888_inplace(
+    const uint8_t* source,
+    const uint8_t* edgeDistance,
+    const uint8_t* normalMap,
+    uint8_t* result,
+    int width,
+    int height,
+    int stride,
+    float refThickness,
+    float refFactor,
+    float refDispersion,
+    float dpr = 1.0f,
+    bool useBilinear = true
+);
+
 #endif // CHROMATIC_ABERRATION_H
 

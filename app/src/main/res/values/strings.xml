@@ -41,6 +41,7 @@
     <string name="section_effect_switches">Effect Switches</string>
     <string name="switch_enable_blur">Enable Blur Effect</string>
     <string name="switch_enable_aberration">Enable Chromatic Aberration</string>
+    <string name="switch_enable_chromatic_effect">Enable Chromatic Effect</string>
     <string name="switch_enable_saturation">Enable Saturation Adjustment</string>
 
     <!-- Parameters -->
@@ -107,6 +108,29 @@
     <string name="section_aberration_quality">Chromatic Aberration Quality</string>
     <string name="switch_bilinear_interpolation">Use Bilinear Interpolation (High Quality)</string>
     <string name="bilinear_desc">• Enabled: Smooth sampling, no mosaic (2-3x slower)\n• Disabled: Nearest-neighbor, faster (may have slight mosaic)\n\nNote: Affects both Kotlin and C++ implementations.</string>
+
+    <!-- Chromatic Dispersion (NEW) -->
+    <string name="section_chromatic_dispersion">Chromatic Dispersion (Physics-Based)</string>
+    <string name="switch_enable_dispersion">Enable Chromatic Dispersion</string>
+    <string name="dispersion_desc">Physics-based glass dispersion effect using Snell\'s law.\n• Realistic glass/crystal effect\n• Edge-based refraction\n• RGB wavelength separation</string>
+
+    <string name="dispersion_thickness">Refraction Thickness: %.0fpx</string>
+    <string name="dispersion_factor">Refraction Factor: %.2f</string>
+    <string name="dispersion_gain">Dispersion Gain: %.1f</string>
+    <string name="dispersion_downscale">Dispersion Downsample: %.2fx</string>
+
+    <string name="dispersion_preset">Dispersion Preset</string>
+    <string name="preset_glass">Glass</string>
+    <string name="preset_diamond">Diamond</string>
+    <string name="preset_crystal">Crystal</string>
+    <string name="preset_rainbow">Rainbow</string>
+    <string name="preset_subtle">Subtle</string>
+    <string name="preset_custom">Custom</string>
+
+    <!-- Effect Algorithm Selection -->
+    <string name="effect_algorithm">Effect Algorithm</string>
+    <string name="algorithm_aberration">Chromatic Aberration</string>
+    <string name="algorithm_dispersion">Chromatic Dispersion</string>
 
     <!-- Optimized Capture -->
     <string name="section_optimized_capture">Optimized Capture</string>

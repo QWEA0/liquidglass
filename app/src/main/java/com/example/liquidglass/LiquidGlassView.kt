@@ -56,6 +56,27 @@ class LiquidGlassView @JvmOverloads constructor(
     // ✅ 效果开关
     var enableBackdropBlur = true  // 背景模糊
     var enableChromaticAberration = true  // 色差效果
+        set(value) {
+            if (field != value) {
+                field = value
+                aberrationDirty = true
+                if (ENABLE_PERFORMANCE_LOG) {
+                    Log.d(TAG, "🔄 切换色差效果: $value, aberrationDirty=$aberrationDirty")
+                }
+                invalidate()
+            }
+        }
+    var enableChromaticDispersion = false  // 色散效果（物理光学）
+        set(value) {
+            if (field != value) {
+                field = value
+                dispersionDirty = true
+                if (ENABLE_PERFORMANCE_LOG) {
+                    Log.d(TAG, "🔄 切换色散效果: $value, dispersionDirty=$dispersionDirty")
+                }
+                invalidate()
+            }
+        }
     var enableShadow = false  // 启用阴影（默认关闭，避免轮廓）
     var enableEdgeHighlight = true  // 边缘高光效果（默认开启）
 
@@ -159,6 +180,44 @@ class LiquidGlassView @JvmOverloads constructor(
             }
         }
 
+    // ✅ 色散效果参数
+    var dispersionThickness = 100f
+        set(value) {
+            if (field != value) {
+                field = value
+                dispersionDirty = true
+                invalidate()
+            }
+        }
+
+    var dispersionFactor = 1.5f
+        set(value) {
+            if (field != value) {
+                field = value
+                dispersionDirty = true
+                invalidate()
+            }
+        }
+
+    var dispersionGain = 7f
+        set(value) {
+            if (field != value) {
+                field = value
+                dispersionDirty = true
+                invalidate()
+            }
+        }
+
+    var dispersionDownsample = 0.5f
+        set(value) {
+            val clamped = value.coerceIn(0.25f, 1.0f)
+            if (field != clamped) {
+                field = clamped
+                dispersionDirty = true
+                invalidate()
+            }
+        }
+
     // 效果参数(对应 React 版本的 props) - 带脏标记的属性
     var displacementScale = 70f
         set(value) {
@@ -221,6 +280,7 @@ class LiquidGlassView @JvmOverloads constructor(
     // 效果处理器
     private val enhancedBlurEffect = EnhancedBlurEffect(this)  // 增强模糊效果
     private val chromaticAberrationEffect = ChromaticAberrationEffect()
+    private val chromaticDispersionEffect = ChromaticDispersionEffect()  // 色散效果
     private val edgeHighlightEffect = EdgeHighlightEffect()
 
     /**
@@ -280,6 +340,7 @@ class LiquidGlassView @JvmOverloads constructor(
     // 脏标记（不包括 backdrop，因为每帧都需要捕获以支持动态背景）
     private var blurDirty = true
     private var aberrationDirty = true
+    private var dispersionDirty = true
 
     private var needsRedraw = true
 
@@ -585,9 +646,32 @@ class LiquidGlassView @JvmOverloads constructor(
 
         if (ENABLE_PERFORMANCE_LOG) t3 = System.nanoTime()
 
-        // 3. 应用色差效果（L3 缓存 + 降采样优化）- 可选
+        // 3. 应用色差或色散效果（互斥）
         val displacementMap = displacementMaps?.get(displacementMode)
-        if (enableChromaticAberration && (aberrationDirty || aberrationChanged) && aberrationIntensity > 0 && displacementMap != null) {
+
+        // 3a. 色散效果（优先级高于色差）- 每次都执行
+        if (enableChromaticDispersion) {
+            cachedBlurred?.let { blurred ->
+                val dispersed = chromaticDispersionEffect.apply(
+                    source = blurred,
+                    refThickness = dispersionThickness,
+                    refFactor = dispersionFactor,
+                    refDispersion = dispersionGain,
+                    downscale = dispersionDownsample,
+                    cornerRadius = cornerRadius  // 传递圆角半径
+                )
+
+                cachedResult?.recycle()
+                cachedResult = dispersed
+            }
+
+            if (ENABLE_PERFORMANCE_LOG) t4 = System.nanoTime()
+
+            aberrationDirty = false  // 重置色差脏标记
+            dispersionDirty = false  // 重置色散脏标记
+        }
+        // 3b. 色差效果
+        else if (enableChromaticAberration && (aberrationDirty || aberrationChanged) && aberrationIntensity > 0 && displacementMap != null) {
             cachedBlurred?.let { blurred ->
                 // ✅ 使用降采样处理，速度提升 4倍，并传递通道偏移参数
                 val aberrated = chromaticAberrationEffect.apply(
@@ -609,15 +693,19 @@ class LiquidGlassView @JvmOverloads constructor(
                 lastAberrationIntensity = aberrationIntensity
             }
             aberrationDirty = false
-        } else if (aberrationDirty || !enableChromaticAberration) {
+            dispersionDirty = false  // 重置色散脏标记
+        }
+        // 3c. 无效果
+        else if (aberrationDirty || dispersionDirty || !enableChromaticAberration) {
             if (ENABLE_PERFORMANCE_LOG) t4 = System.nanoTime()
 
-            // 没有色差效果，直接使用模糊后的结果（已移除圆角遮罩）
+            // 没有色差/色散效果，直接使用模糊后的结果（已移除圆角遮罩）
             cachedBlurred?.let { blurred ->
                 cachedResult?.recycle()
                 cachedResult = blurred.copy(blurred.config ?: Bitmap.Config.ARGB_8888, true)
             }
             aberrationDirty = false
+            dispersionDirty = false
         }
 
         if (ENABLE_PERFORMANCE_LOG) t5 = System.nanoTime()
@@ -630,14 +718,20 @@ class LiquidGlassView @JvmOverloads constructor(
             val finalizeTime = (t5 - t4) / 1_000_000f
             val totalTime = (t5 - t1) / 1_000_000f
 
+            val effectName = when {
+                enableChromaticDispersion -> "色散"
+                enableChromaticAberration -> "色差"
+                else -> "无"
+            }
+
             Log.d(TAG, """
                 |📊 [性能分析] 各效果耗时:
                 |  1️⃣ 捕获背景: ${String.format("%.3f", captureTime)}ms ${if (enableBackdropBlur) "✅" else "⏭️"}
                 |  2️⃣ 模糊处理: ${String.format("%.3f", blurTime)}ms ${if (enableBackdropBlur) "✅" else "⏭️"}
-                |  3️⃣ 色差效果: ${String.format("%.3f", aberrationTime)}ms ${if (enableChromaticAberration) "✅" else "⏭️"}
+                |  3️⃣ $effectName 效果: ${String.format("%.3f", aberrationTime)}ms ${if (enableChromaticDispersion || enableChromaticAberration) "✅" else "⏭️"}
                 |  4️⃣ 最终处理: ${String.format("%.3f", finalizeTime)}ms
                 |  ⏱️ 总耗时: ${String.format("%.3f", totalTime)}ms (~${(1000f / totalTime).toInt()} FPS)
-                |  💾 缓存状态: blur=${!blurDirty}, aberration=${!aberrationDirty}
+                |  💾 缓存状态: blur=${!blurDirty}, aberration=${!aberrationDirty}, dispersion=${!dispersionDirty}
             """.trimMargin())
 
             // 性能警告

@@ -288,3 +288,194 @@ void chromatic_aberration_rgba8888_inplace(
     );
 }
 
+// ============================================================================
+// 色散效果实现（Chromatic Dispersion）
+// ============================================================================
+
+/**
+ * 色散效果处理 - 基于物理光学原理
+ *
+ * 核心算法：
+ * 1. 读取边缘距离（distanceToEdge）
+ * 2. 应用 Snell 定律计算折射强度（edgeFactor）
+ * 3. 读取或计算法线方向（normalX, normalY）
+ * 4. 计算基础偏移（沿法线方向）
+ * 5. 应用色散系数（不同波长的折射率）
+ * 6. 分别采样 RGB 三个通道
+ *
+ * 物理原理：
+ * - Snell 定律：n₁ sin(θ₁) = n₂ sin(θ₂)
+ * - 不同波长的折射率：N_R = 0.98, N_G = 1.0, N_B = 1.02
+ * - 边缘距离越近，折射效果越强
+ */
+void chromatic_dispersion_rgba8888(
+    const uint8_t* source,
+    const uint8_t* edgeDistance,
+    const uint8_t* normalMap,
+    uint8_t* result,
+    int width,
+    int height,
+    int sourceStride,
+    int edgeDistanceStride,
+    int normalMapStride,
+    int resultStride,
+    float refThickness,
+    float refFactor,
+    float refDispersion,
+    float dpr,
+    bool useBilinear
+) {
+    // 参数校验
+    if (!source || !edgeDistance || !result) {
+        LOGE("Dispersion: Invalid parameters: null pointer");
+        return;
+    }
+
+    if (width <= 0 || height <= 0) {
+        LOGE("Dispersion: Invalid dimensions: %dx%d", width, height);
+        return;
+    }
+
+    if (sourceStride < width * 4 || edgeDistanceStride < width * 4 || resultStride < width * 4) {
+        LOGE("Dispersion: Invalid stride");
+        return;
+    }
+
+    // 折射率常数（对应不同波长的光）
+    const float N_R = 1.0f - 0.02f;  // 0.98 - 红光
+    const float N_G = 1.0f;           // 1.0  - 绿光
+    const float N_B = 1.0f + 0.02f;  // 1.02 - 蓝光
+
+    // 中心点坐标（用于计算径向法线）
+    const float centerX = width * 0.5f;
+    const float centerY = height * 0.5f;
+
+    LOGD("Dispersion: Processing %dx%d, refThickness=%.2f, refFactor=%.2f, refDispersion=%.2f, dpr=%.2f",
+         width, height, refThickness, refFactor, refDispersion, dpr);
+
+    // 调试：采样几个关键像素
+    bool debugSamples = true;
+
+    // 处理每个像素
+    for (int y = 0; y < height; ++y) {
+        const uint8_t* edgeRow = edgeDistance + y * edgeDistanceStride;
+        uint8_t* resultRow = result + y * resultStride;
+
+        for (int x = 0; x < width; ++x) {
+            // 1. 读取边缘距离（归一化到 0-500 范围）
+            // 注意：贴图中现在直接存储"到边缘的距离"（边缘=0，中心=255），无需反转
+            const uint8_t* edgePixel = edgeRow + x * 4;
+            float distanceToEdge = edgePixel[2] / 255.0f * 500.0f;  // 使用 R 通道（BGRA 格式中 index=2）
+            float nmerged = distanceToEdge;
+
+            // 2. 计算折射强度（Snell 定律）
+            float edgeFactor = 0.0f;
+            if (nmerged < refThickness) {
+                float x_R_ratio = 1.0f - nmerged / refThickness;
+                float thetaI = asinf(powf(x_R_ratio, 2.0f));
+                float thetaT = asinf(1.0f / refFactor * sinf(thetaI));
+                edgeFactor = -tanf(thetaT - thetaI);
+
+                // 边界检查
+                if (edgeFactor < 0.0f) edgeFactor = 0.0f;
+            }
+
+            // 3. 读取或计算法线方向
+            float normalX, normalY;
+            if (normalMap != nullptr) {
+                // 从法线贴图读取
+                const uint8_t* normalPixel = normalMap + y * normalMapStride + x * 4;
+                normalX = (normalPixel[2] / 255.0f) * 2.0f - 1.0f;  // R 通道
+                normalY = (normalPixel[1] / 255.0f) * 2.0f - 1.0f;  // G 通道
+            } else {
+                // 使用径向法线（从中心指向边缘）
+                float dx = x - centerX;
+                float dy = y - centerY;
+                float len = sqrtf(dx * dx + dy * dy);
+                if (len > 0.0f) {
+                    normalX = dx / len;
+                    normalY = dy / len;
+                } else {
+                    normalX = 0.0f;
+                    normalY = 0.0f;
+                }
+            }
+
+            // 4. 计算基础偏移（沿法线方向）
+            // 增大偏移系数，使效果更明显（从 0.05 增加到 5.0，增大 100 倍）
+            float aspectRatio = static_cast<float>(height) / static_cast<float>(width);
+            float baseOffsetX = -normalX * edgeFactor * 5.0f * dpr * aspectRatio;
+            float baseOffsetY = -normalY * edgeFactor * 5.0f * dpr;
+
+            // 5. 应用色散（不同折射率）
+            float offsetR_x = baseOffsetX * (1.0f - (N_R - 1.0f) * refDispersion);
+            float offsetR_y = baseOffsetY * (1.0f - (N_R - 1.0f) * refDispersion);
+
+            float offsetG_x = baseOffsetX * (1.0f - (N_G - 1.0f) * refDispersion);
+            float offsetG_y = baseOffsetY * (1.0f - (N_G - 1.0f) * refDispersion);
+
+            float offsetB_x = baseOffsetX * (1.0f - (N_B - 1.0f) * refDispersion);
+            float offsetB_y = baseOffsetY * (1.0f - (N_B - 1.0f) * refDispersion);
+
+            // 6. 采样三个通道
+            uint8_t r, g, b;
+            if (useBilinear) {
+                r = sample_bilinear_channel(source, width, height, sourceStride, x + offsetR_x, y + offsetR_y, 2);
+                g = sample_bilinear_channel(source, width, height, sourceStride, x + offsetG_x, y + offsetG_y, 1);
+                b = sample_bilinear_channel(source, width, height, sourceStride, x + offsetB_x, y + offsetB_y, 0);
+            } else {
+                r = sample_nearest_channel(source, width, height, sourceStride, x + offsetR_x, y + offsetR_y, 2);
+                g = sample_nearest_channel(source, width, height, sourceStride, x + offsetG_x, y + offsetG_y, 1);
+                b = sample_nearest_channel(source, width, height, sourceStride, x + offsetB_x, y + offsetB_y, 0);
+            }
+
+            // Alpha 通道取自原始像素
+            const uint8_t* sourcePixel = source + y * sourceStride + x * 4;
+            uint8_t alpha = sourcePixel[3];
+
+            // 写入结果（BGRA 格式）
+            uint8_t* outPixel = resultRow + x * 4;
+            outPixel[0] = b;
+            outPixel[1] = g;
+            outPixel[2] = r;
+            outPixel[3] = alpha;
+
+            // 调试：采样边缘、中心和几个关键点
+            if (debugSamples) {
+                if ((x == 10 && y == 10) || (x == width - 10 && y == 10) ||
+                    (x == width / 2 && y == height / 2) ||
+                    (x == 10 && y == height - 10) || (x == width - 10 && y == height - 10)) {
+                    LOGD("Dispersion pixel (%d,%d): edgeDist=%.2f, edgeFactor=%.2f, offset=(%.2f,%.2f), RGB=(%d,%d,%d)",
+                         x, y, distanceToEdge, edgeFactor, baseOffsetX, baseOffsetY, r, g, b);
+                }
+            }
+        }
+    }
+
+    debugSamples = false;  // 只打印一次
+}
+
+// 原位处理版本（简化参数）
+void chromatic_dispersion_rgba8888_inplace(
+    const uint8_t* source,
+    const uint8_t* edgeDistance,
+    const uint8_t* normalMap,
+    uint8_t* result,
+    int width,
+    int height,
+    int stride,
+    float refThickness,
+    float refFactor,
+    float refDispersion,
+    float dpr,
+    bool useBilinear
+) {
+    chromatic_dispersion_rgba8888(
+        source, edgeDistance, normalMap, result,
+        width, height,
+        stride, stride, stride, stride,
+        refThickness, refFactor, refDispersion, dpr,
+        useBilinear
+    );
+}
+

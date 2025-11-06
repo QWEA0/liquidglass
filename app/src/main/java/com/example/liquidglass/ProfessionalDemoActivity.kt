@@ -69,11 +69,25 @@ class ProfessionalDemoActivity : AppCompatActivity() {
     private lateinit var switchEnableSaturation: Switch
     private lateinit var switchBilinearInterpolation: Switch
 
+    // 色散效果控件
+    private lateinit var radioGroupAlgorithm: RadioGroup
+    private lateinit var radioAberration: RadioButton
+    private lateinit var radioDispersion: RadioButton
+    private lateinit var seekDispersionThickness: SeekBar
+    private lateinit var seekDispersionFactor: SeekBar
+    private lateinit var seekDispersionGain: SeekBar
+    private lateinit var seekDispersionDownsample: SeekBar
+    private lateinit var spinnerDispersionPreset: Spinner
+
     private lateinit var tvBlur: TextView
     private lateinit var tvSaturation: TextView
     private lateinit var tvAberration: TextView
     private lateinit var tvBlurMethod: TextView
     private lateinit var tvAberrationMethod: TextView
+    private lateinit var tvDispersionThickness: TextView
+    private lateinit var tvDispersionFactor: TextView
+    private lateinit var tvDispersionGain: TextView
+    private lateinit var tvDispersionDownsample: TextView
     private lateinit var tvDebugInfo: TextView
     private lateinit var tvImageSizes: TextView
     private lateinit var tvCurrentLanguage: TextView
@@ -101,6 +115,7 @@ class ProfessionalDemoActivity : AppCompatActivity() {
     }
 
     companion object {
+        private const val TAG = "ProfessionalDemo"
         private const val PREF_NAME = "LiquidGlassPrefs"
         private const val KEY_LANGUAGE = "language"
         private const val LANG_ENGLISH = "en"
@@ -499,11 +514,16 @@ class ProfessionalDemoActivity : AppCompatActivity() {
 
         switchEnableAberration = Switch(this).apply {
             id = View.generateViewId()
-            text = getString(R.string.switch_enable_aberration)
+            text = getString(R.string.switch_enable_chromatic_effect)
             setTextColor(Color.BLACK)
             isChecked = true
             setOnCheckedChangeListener { _, isChecked ->
-                glassView.enableChromaticAberration = isChecked
+                // 根据当前选择的算法启用/禁用对应效果
+                if (radioAberration.isChecked) {
+                    glassView.enableChromaticAberration = isChecked
+                } else {
+                    glassView.enableChromaticDispersion = isChecked
+                }
             }
         }
         container.addView(switchEnableAberration)
@@ -553,6 +573,84 @@ class ProfessionalDemoActivity : AppCompatActivity() {
 
         container.addView(createDivider())
 
+        // ✅ 效果算法选择（单选框）
+        container.addView(createSectionTitle(getString(R.string.effect_algorithm)))
+
+        radioGroupAlgorithm = RadioGroup(this).apply {
+            id = View.generateViewId()
+            orientation = RadioGroup.VERTICAL
+            setPadding(0, 8, 0, 16)
+        }
+
+        radioAberration = RadioButton(this).apply {
+            id = View.generateViewId()
+            text = getString(R.string.algorithm_aberration)
+            setTextColor(Color.BLACK)
+            isChecked = true
+        }
+        radioGroupAlgorithm.addView(radioAberration)
+
+        radioDispersion = RadioButton(this).apply {
+            id = View.generateViewId()
+            text = getString(R.string.algorithm_dispersion)
+            setTextColor(Color.BLACK)
+        }
+        radioGroupAlgorithm.addView(radioDispersion)
+
+        radioGroupAlgorithm.setOnCheckedChangeListener { _, checkedId ->
+            Log.d(TAG, "📻 算法切换事件触发: checkedId=$checkedId")
+            when (checkedId) {
+                radioAberration.id -> {
+                    Log.d(TAG, "  → 切换到色差效果")
+                    // 切换到色差效果
+                    val shouldEnable = switchEnableAberration.isChecked
+                    Log.d(TAG, "  开关状态: $shouldEnable")
+                    glassView.enableChromaticDispersion = false
+                    // 强制触发 setter：先设置为相反值，再设置为目标值
+                    glassView.enableChromaticAberration = !shouldEnable
+                    glassView.enableChromaticAberration = shouldEnable
+                    // 显示色差参数，隐藏色散参数
+                    seekAberration.visibility = View.VISIBLE
+                    tvAberration.visibility = View.VISIBLE
+                    seekDispersionThickness.visibility = View.GONE
+                    seekDispersionFactor.visibility = View.GONE
+                    seekDispersionGain.visibility = View.GONE
+                    seekDispersionDownsample.visibility = View.GONE
+                    tvDispersionThickness.visibility = View.GONE
+                    tvDispersionFactor.visibility = View.GONE
+                    tvDispersionGain.visibility = View.GONE
+                    tvDispersionDownsample.visibility = View.GONE
+                    spinnerDispersionPreset.visibility = View.GONE
+                }
+                radioDispersion.id -> {
+                    Log.d(TAG, "  → 切换到色散效果")
+                    // 切换到色散效果
+                    val shouldEnable = switchEnableAberration.isChecked
+                    Log.d(TAG, "  开关状态: $shouldEnable")
+                    glassView.enableChromaticAberration = false
+                    // 强制触发 setter：先设置为相反值，再设置为目标值
+                    glassView.enableChromaticDispersion = !shouldEnable
+                    glassView.enableChromaticDispersion = shouldEnable
+                    // 隐藏色差参数，显示色散参数
+                    seekAberration.visibility = View.GONE
+                    tvAberration.visibility = View.GONE
+                    seekDispersionThickness.visibility = View.VISIBLE
+                    seekDispersionFactor.visibility = View.VISIBLE
+                    seekDispersionGain.visibility = View.VISIBLE
+                    seekDispersionDownsample.visibility = View.VISIBLE
+                    tvDispersionThickness.visibility = View.VISIBLE
+                    tvDispersionFactor.visibility = View.VISIBLE
+                    tvDispersionGain.visibility = View.VISIBLE
+                    tvDispersionDownsample.visibility = View.VISIBLE
+                    spinnerDispersionPreset.visibility = View.VISIBLE
+                }
+            }
+        }
+
+        container.addView(radioGroupAlgorithm)
+
+        container.addView(createDivider())
+
         // 色差强度
         container.addView(createSectionTitle(getString(R.string.section_aberration)))
 
@@ -563,6 +661,134 @@ class ProfessionalDemoActivity : AppCompatActivity() {
         container.addView(tvAberration)
         seekAberration = SeekBar(this).apply { id = View.generateViewId() }
         container.addView(seekAberration)
+
+        // ✅ 色散效果参数（初始隐藏）
+        // 预设选择
+        val tvDispersionPreset = TextView(this).apply {
+            id = View.generateViewId()
+            text = getString(R.string.dispersion_preset)
+            setTextColor(Color.BLACK)
+            setPadding(0, 16, 0, 8)
+        }
+        container.addView(tvDispersionPreset)
+
+        val presets = arrayOf(
+            getString(R.string.preset_glass),
+            getString(R.string.preset_diamond),
+            getString(R.string.preset_crystal),
+            getString(R.string.preset_rainbow),
+            getString(R.string.preset_subtle)
+        )
+
+        spinnerDispersionPreset = Spinner(this).apply {
+            id = View.generateViewId()
+            visibility = View.GONE
+        }
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, presets)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinnerDispersionPreset.adapter = adapter
+        spinnerDispersionPreset.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                when (position) {
+                    0 -> { // Glass
+                        glassView.dispersionThickness = 100f
+                        glassView.dispersionFactor = 1.5f
+                        glassView.dispersionGain = 7f
+                    }
+                    1 -> { // Diamond
+                        glassView.dispersionThickness = 80f
+                        glassView.dispersionFactor = 2.4f
+                        glassView.dispersionGain = 15f
+                    }
+                    2 -> { // Crystal
+                        glassView.dispersionThickness = 120f
+                        glassView.dispersionFactor = 1.8f
+                        glassView.dispersionGain = 10f
+                    }
+                    3 -> { // Rainbow
+                        glassView.dispersionThickness = 150f
+                        glassView.dispersionFactor = 1.3f
+                        glassView.dispersionGain = 20f
+                    }
+                    4 -> { // Subtle
+                        glassView.dispersionThickness = 200f
+                        glassView.dispersionFactor = 1.2f
+                        glassView.dispersionGain = 3f
+                    }
+                }
+                updateDispersionUI()
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+        container.addView(spinnerDispersionPreset)
+
+        // 折射厚度
+        tvDispersionThickness = TextView(this).apply {
+            id = View.generateViewId()
+            setTextColor(Color.BLACK)
+            text = getString(R.string.dispersion_thickness, 100f)
+            visibility = View.GONE
+        }
+        container.addView(tvDispersionThickness)
+
+        seekDispersionThickness = SeekBar(this).apply {
+            id = View.generateViewId()
+            max = 150  // 50-200
+            progress = 50  // 默认 100
+            visibility = View.GONE
+        }
+        container.addView(seekDispersionThickness)
+
+        // 折射系数
+        tvDispersionFactor = TextView(this).apply {
+            id = View.generateViewId()
+            setTextColor(Color.BLACK)
+            text = getString(R.string.dispersion_factor, 1.5f)
+            visibility = View.GONE
+        }
+        container.addView(tvDispersionFactor)
+
+        seekDispersionFactor = SeekBar(this).apply {
+            id = View.generateViewId()
+            max = 100  // 1.0-3.0
+            progress = 25  // 默认 1.5
+            visibility = View.GONE
+        }
+        container.addView(seekDispersionFactor)
+
+        // 色散增益
+        tvDispersionGain = TextView(this).apply {
+            id = View.generateViewId()
+            setTextColor(Color.BLACK)
+            text = getString(R.string.dispersion_gain, 7f)
+            visibility = View.GONE
+        }
+        container.addView(tvDispersionGain)
+
+        seekDispersionGain = SeekBar(this).apply {
+            id = View.generateViewId()
+            max = 50  // 0-50
+            progress = 7  // 默认 7
+            visibility = View.GONE
+        }
+        container.addView(seekDispersionGain)
+
+        // 色散降采样
+        tvDispersionDownsample = TextView(this).apply {
+            id = View.generateViewId()
+            setTextColor(Color.BLACK)
+            text = getString(R.string.dispersion_downscale, 0.5f)
+            visibility = View.GONE
+        }
+        container.addView(tvDispersionDownsample)
+
+        seekDispersionDownsample = SeekBar(this).apply {
+            id = View.generateViewId()
+            max = 75  // 0.25-1.0
+            progress = 25  // 默认 0.5
+            visibility = View.GONE
+        }
+        container.addView(seekDispersionDownsample)
 
         container.addView(createDivider())
 
@@ -1133,10 +1359,66 @@ class ProfessionalDemoActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
+        // ✅ 色散参数监听器
+        seekDispersionThickness.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val value = 50f + progress
+                glassView.dispersionThickness = value
+                tvDispersionThickness.text = getString(R.string.dispersion_thickness, value)
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        seekDispersionFactor.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val value = 1.0f + progress / 50f
+                glassView.dispersionFactor = value
+                tvDispersionFactor.text = getString(R.string.dispersion_factor, value)
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        seekDispersionGain.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val value = progress.toFloat()
+                glassView.dispersionGain = value
+                tvDispersionGain.text = getString(R.string.dispersion_gain, value)
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        seekDispersionDownsample.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val value = 0.25f + progress / 100f
+                glassView.dispersionDownsample = value
+                tvDispersionDownsample.text = getString(R.string.dispersion_downscale, value)
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
         // 高质量模式
         switchHighQuality.setOnCheckedChangeListener { _, isChecked ->
             glassView.highQualityBlur = isChecked
         }
+    }
+
+    /**
+     * 更新色散UI显示
+     */
+    private fun updateDispersionUI() {
+        seekDispersionThickness.progress = (glassView.dispersionThickness - 50).toInt()
+        seekDispersionFactor.progress = ((glassView.dispersionFactor - 1.0f) * 50).toInt()
+        seekDispersionGain.progress = glassView.dispersionGain.toInt()
+        seekDispersionDownsample.progress = ((glassView.dispersionDownsample - 0.25f) * 100).toInt()
+
+        tvDispersionThickness.text = getString(R.string.dispersion_thickness, glassView.dispersionThickness)
+        tvDispersionFactor.text = getString(R.string.dispersion_factor, glassView.dispersionFactor)
+        tvDispersionGain.text = getString(R.string.dispersion_gain, glassView.dispersionGain)
+        tvDispersionDownsample.text = getString(R.string.dispersion_downscale, glassView.dispersionDownsample)
     }
 
     private fun startPerformanceMonitoring() {
